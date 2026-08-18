@@ -144,7 +144,7 @@ function Footer() {
         <div>
           <p className="font-display text-2xl">{SERVER.name}</p>
           <p className="mt-1 max-w-sm text-sm text-muted">
-            {SERVER.fullName}. Live roster from the Paper ping — not a mock list.
+            {SERVER.fullName}. Live roster from the real server ping.
           </p>
         </div>
         <div className="flex flex-wrap gap-4 text-sm text-muted">

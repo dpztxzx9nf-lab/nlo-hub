@@ -71,7 +71,7 @@ function BoardsPage() {
     <PageFrame
       eyebrow="Ledger"
       title="Who is actually here"
-      lead="Pulled from the live nlo.gg ping. No mock prestige. Sightings grow as people join."
+      lead="Pulled from the live nlo.gg ping. Sightings grow as people join."
     >
       <div className="mb-4">
         <StatusLive status={status} />

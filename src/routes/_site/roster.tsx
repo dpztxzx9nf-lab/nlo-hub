@@ -56,7 +56,7 @@ function RosterPage() {
     <PageFrame
       eyebrow="Players"
       title="Who the server has seen"
-      lead="Names come from the live Paper ping on nlo.gg — not a mock list. Join and you land here."
+      lead="Names come from the live server ping. Join and you land here."
     >
       <Input
         value={q}
