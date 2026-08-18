@@ -19,7 +19,7 @@ export const Route = createRootRoute({
           "NLO — Netherite Legends Odyssey. Live Java 26.2 / Bedrock SMP. Roster is pulled from the real server ping.",
       },
       { name: "apple-mobile-web-app-title", content: APP_NAME },
-      { name: "theme-color", content: "#0a0612" },
+      { name: "theme-color", content: "#0e1610" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
       { property: "og:title", content: "NLO — open SMP with consequences" },
@@ -44,11 +44,16 @@ export const Route = createRootRoute({
     ],
   }),
   component: () => (
-    <html lang="en" className="antialiased" suppressHydrationWarning>
+    <html
+      lang="en"
+      className="antialiased"
+      style={{ background: "#0e1610", color: "#eef2e4" }}
+      suppressHydrationWarning
+    >
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body style={{ background: "#0e1610", color: "#eef2e4", margin: 0 }}>
         <PreviewHostBridge />
         <AuthProvider>
           <Outlet />
