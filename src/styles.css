@@ -1,0 +1,142 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0e1610;
+  --color-foreground: #eef2e4;
+  --color-card: #162016;
+  --color-panel: #2a2118;
+  --color-oak: #3d2e1e;
+  --color-muted: #9aaa90;
+  --color-faint: #6d7a68;
+  --color-accent: #5cbf4a;
+  --color-accent-foreground: #0c140c;
+  --color-line: color-mix(in oklab, var(--color-foreground) 14%, transparent);
+  --color-line-strong: color-mix(in oklab, var(--color-foreground) 26%, transparent);
+  --color-live: #5cbf4a;
+  --color-live-foreground: #0c140c;
+  --color-wanted: #c45a3a;
+  --color-wanted-foreground: #1a0c08;
+  --color-gold: #d4b45a;
+  --color-gold-foreground: #1a1408;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 22px;
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Pixelify Sans", "IBM Plex Sans", sans-serif;
+  --aspect-photo: 16/10;
+  --aspect-banner: 21/9;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: var(--color-background);
+    color: var(--color-foreground);
+  }
+
+  body {
+    min-height: 100dvh;
+    background-color: var(--color-background);
+    background-image:
+      linear-gradient(
+        color-mix(in oklab, var(--color-background) 88%, transparent),
+        color-mix(in oklab, var(--color-background) 88%, transparent)
+      ),
+      url("/tex-grass.jpg");
+    background-size: auto, 420px;
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    font-family: var(--font-display);
+    letter-spacing: 0.01em;
+    line-height: 1.1;
+    font-weight: 600;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  img {
+    outline: 1px solid color-mix(in oklab, var(--color-foreground) 10%, transparent);
+    outline-offset: -1px;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-accent) 35%, transparent);
+    color: var(--color-foreground);
+  }
+}
+
+@layer components {
+  .tex-oak {
+    background-color: var(--color-panel);
+    background-image:
+      linear-gradient(
+        color-mix(in oklab, var(--color-panel) 70%, transparent),
+        color-mix(in oklab, var(--color-panel) 70%, transparent)
+      ),
+      url("/tex-oak.jpg");
+    background-size: auto, 280px;
+  }
+
+  .tex-stone {
+    background-color: var(--color-card);
+    background-image:
+      linear-gradient(
+        color-mix(in oklab, var(--color-card) 74%, transparent),
+        color-mix(in oklab, var(--color-card) 74%, transparent)
+      ),
+      url("/tex-stone.jpg");
+    background-size: auto, 320px;
+  }
+
+  .tex-grass {
+    background-color: var(--color-accent);
+    background-image:
+      linear-gradient(
+        color-mix(in oklab, var(--color-accent) 35%, transparent),
+        color-mix(in oklab, var(--color-accent) 35%, transparent)
+      ),
+      url("/tex-grass.jpg");
+    background-size: auto, 180px;
+  }
+
+  .mc-bevel {
+    box-shadow:
+      inset 0 2px 0 color-mix(in oklab, var(--color-foreground) 22%, transparent),
+      inset 0 -3px 0 color-mix(in oklab, var(--color-background) 45%, transparent),
+      0 0 0 2px color-mix(in oklab, var(--color-background) 70%, transparent);
+  }
+
+  .mc-inset {
+    box-shadow:
+      inset 0 3px 0 color-mix(in oklab, var(--color-background) 40%, transparent),
+      inset 0 -1px 0 color-mix(in oklab, var(--color-foreground) 10%, transparent),
+      0 0 0 1px color-mix(in oklab, var(--color-foreground) 12%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

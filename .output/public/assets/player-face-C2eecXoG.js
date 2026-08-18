@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-NZYk81nU.js";import{t}from"./utils-BHB4BAMe.js";var n=e();function r({ign:e,uuid:r,size:i=40,className:a}){return(0,n.jsx)(`img`,{src:`https://mc-heads.net/avatar/${encodeURIComponent(r||e)}/${i}`,alt:``,width:i,height:i,className:t(`shrink-0 rounded-xs bg-oak`,a),style:{imageRendering:`pixelated`},crossOrigin:`anonymous`})}export{r as t};

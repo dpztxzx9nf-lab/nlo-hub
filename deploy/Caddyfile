@@ -1,0 +1,12 @@
+# NLO player hub — HTTP/HTTPS only.
+# Minecraft stays on 25565 / 19132. Do not proxy those ports.
+#
+# On the game box:
+#   1. Point this file at /etc/caddy/Caddyfile
+#   2. App listens on 127.0.0.1:3000
+#   3. nlo.gg A record stays on this box (grey cloud in Cloudflare)
+
+nlo.gg, www.nlo.gg {
+	encode gzip
+	reverse_proxy 127.0.0.1:3000
+}

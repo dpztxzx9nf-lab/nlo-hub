@@ -1,0 +1,1 @@
+import{c as e}from"./index-BuJVsxtn.js";var t=e;export{t as errorComponent};

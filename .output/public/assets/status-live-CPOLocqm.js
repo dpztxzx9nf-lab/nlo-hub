@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-NZYk81nU.js";import{t}from"./badge-FSl4sVgP.js";var n=e();function r({status:e}){return e.checked?e.online?(0,n.jsxs)(t,{variant:`live`,children:[e.players,`/`,e.max,` online`]}):(0,n.jsx)(t,{variant:`wanted`,children:`Offline`}):(0,n.jsxs)(t,{variant:`oak`,children:[`Status unknown · Java `,e.version??`26.2`]})}export{r as t};

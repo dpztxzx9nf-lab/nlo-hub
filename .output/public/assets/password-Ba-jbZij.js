@@ -1,0 +1,1 @@
+function e(e,t=``){let n=[];return e.length<12&&n.push(`At least 12 characters.`),/[a-zA-Z]/.test(e)||n.push(`Include a letter.`),/[0-9]/.test(e)||n.push(`Include a number.`),t&&e.toLowerCase().includes(t.split(`@`)[0].toLowerCase())&&t.split(`@`)[0].length>=3&&n.push(`Do not use your email in the password.`),n}export{e as t};
