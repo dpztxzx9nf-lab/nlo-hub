@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { ArrowRight, Swords, Trophy, Wallet } from "lucide-react";
 import { CopyIp } from "@/components/copy-ip";
 import { PlayerFace } from "@/components/player-face";
-import { StatusLive, LiveCount } from "@/components/status-live";
+import { StatusLive, LiveCount, useLiveWorld } from "@/components/status-live";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/page-frame";
@@ -27,6 +27,14 @@ export const Route = createFileRoute("/_site/")({
 
 function Home() {
   const { status, online, recent, openBounties } = Route.useLoaderData();
+  const live = useLiveWorld(status);
+  const nowOnline =
+    live.online.length > 0
+      ? live.online
+      : live.at === 0
+        ? online
+        : [];
+  const livePlayers = live.status.checked ? live.status.players : status.players;
 
   return (
     <div>
@@ -102,17 +110,28 @@ function Home() {
               <p className="font-mono text-xs tracking-widest text-accent uppercase">Live</p>
               <h2 className="text-3xl">On the world</h2>
             </div>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/roster">Roster</Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              {live.status.checked ? (
+                <span className="font-mono text-xs text-muted tabular-nums">
+                  {livePlayers}/{live.status.max}
+                </span>
+              ) : null}
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/roster">Roster</Link>
+              </Button>
+            </div>
           </div>
-          {online.length === 0 && recent.length === 0 ? (
+          {nowOnline.length === 0 && recent.length === 0 ? (
             <p className="mt-5 text-sm text-muted">
               Nobody on the ledger yet. Join {SERVER.ip} and you will appear here.
             </p>
-          ) : online.length === 0 ? (
+          ) : nowOnline.length === 0 ? (
             <div className="mt-5">
-              <p className="text-sm text-muted">Empty right now. Last seen:</p>
+              <p className="text-sm text-muted">
+                {live.status.checked && livePlayers > 0
+                  ? `${livePlayers} online — names not in this ping yet.`
+                  : "Empty right now. Last seen:"}
+              </p>
               <ol className="mt-3 grid gap-2">
                 {recent.slice(0, 5).map((p) => (
                   <PlayerLine key={p.ign} ign={p.ign} uuid={p.uuid} meta={formatWhen(p.last_seen)} />
@@ -121,7 +140,7 @@ function Home() {
             </div>
           ) : (
             <ol className="mt-5 grid gap-2">
-              {online.map((p) => (
+              {nowOnline.map((p) => (
                 <PlayerLine key={p.ign} ign={p.ign} uuid={p.uuid} meta="Online" live />
               ))}
             </ol>

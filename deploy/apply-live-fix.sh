@@ -1,5 +1,6 @@
 #!/bin/bash
-# Apply fiery icons + dual-host player ping on the Hetzner box.
+# Pull latest hub, rebuild, copy icons, restart nlo.
+# Run as a single script — no && needed in the Hetzner console.
 set -euo pipefail
 APP=""
 for d in /opt/nlo/app /opt/nlo /root/nlo-hub; do
@@ -30,31 +31,10 @@ if [ -f .output/public/__grok/nlo-180.png ]; then
   cp .output/public/__grok/nlo-180.png .output/public/apple-touch-icon.png
 fi
 
-python3 - <<'PY'
-from pathlib import Path
-import re
-roots = [Path('.output/server'), Path('.output')]
-patched = 0
-for root in roots:
-    if not root.exists():
-        continue
-    for p in root.rglob('*.mjs'):
-        t = p.read_text(errors='ignore')
-        if 'mcstatus.io' not in t:
-            continue
-        orig = t
-        t = t.replace(
-            'https://api.mcstatus.io/v2/status/java/nlo.gg',
-            'https://api.mcstatus.io/v2/status/java/5.78.90.11',
-        )
-        t = t.replace('AbortSignal.timeout(4e3)', 'AbortSignal.timeout(8e3)')
-        t = t.replace('AbortSignal.timeout(4000)', 'AbortSignal.timeout(8000)')
-        if t != orig:
-            p.write_text(t)
-            print('patched', p)
-            patched += 1
-print('files_patched', patched)
-PY
+if [ -f package.json ] && command -v npm >/dev/null; then
+  echo "rebuilding hub"
+  npm run build:box
+fi
 
 systemctl restart nlo || systemctl restart nlo.service || true
 sleep 2

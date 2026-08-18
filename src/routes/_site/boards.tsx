@@ -2,9 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { PageFrame, Panel } from "@/components/page-frame";
 import { PlayerFace } from "@/components/player-face";
+import { StatusLive, useLiveWorld } from "@/components/status-live";
 import { Badge } from "@/components/ui/badge";
 import type { SeenPlayer } from "@/lib/nlo/server";
-import { getRoster } from "@/lib/nlo/server";
+import { getRoster, getLiveStatus } from "@/lib/nlo/server";
 import { cn, formatWhen } from "@/lib/utils";
 
 const TABS = [
@@ -16,23 +17,55 @@ const TABS = [
 type Tab = (typeof TABS)[number]["id"];
 
 export const Route = createFileRoute("/_site/boards")({
-  loader: () => getRoster(),
+  loader: async () => {
+    const [roster, status] = await Promise.all([getRoster(), getLiveStatus()]);
+    return { roster, status };
+  },
   component: BoardsPage,
 });
 
 function BoardsPage() {
-  const roster = Route.useLoaderData();
+  const { roster, status } = Route.useLoaderData();
+  const live = useLiveWorld(status);
   const [tab, setTab] = useState<Tab>("online");
 
+  const merged = useMemo(() => {
+    const liveNames = new Set(live.online.map((p) => p.ign.toLowerCase()));
+    const byIgn = new Map(roster.map((p) => [p.ign.toLowerCase(), { ...p }]));
+    for (const name of live.online) {
+      const key = name.ign.toLowerCase();
+      const existing = byIgn.get(key);
+      if (existing) {
+        existing.online = true;
+        existing.uuid = existing.uuid ?? name.uuid;
+      } else {
+        byIgn.set(key, {
+          ign: name.ign,
+          uuid: name.uuid,
+          first_seen: "",
+          last_seen: "",
+          seen_count: 1,
+          online: true,
+        });
+      }
+    }
+    if (live.status.checked) {
+      for (const p of byIgn.values()) {
+        if (!liveNames.has(p.ign.toLowerCase())) p.online = false;
+      }
+    }
+    return [...byIgn.values()];
+  }, [roster, live.online, live.status.checked]);
+
   const rows = useMemo(() => {
-    const copy = [...roster];
+    const copy = [...merged];
     if (tab === "online") {
       copy.sort((a, b) => Number(b.online) - Number(a.online) || b.last_seen.localeCompare(a.last_seen));
     }
     if (tab === "recent") copy.sort((a, b) => b.last_seen.localeCompare(a.last_seen));
     if (tab === "sighted") copy.sort((a, b) => b.seen_count - a.seen_count);
     return tab === "online" ? copy.filter((p) => p.online) : copy;
-  }, [roster, tab]);
+  }, [merged, tab]);
 
   return (
     <PageFrame
@@ -40,6 +73,9 @@ function BoardsPage() {
       title="Who is actually here"
       lead="Pulled from the live nlo.gg ping. No mock prestige. Sightings grow as people join."
     >
+      <div className="mb-4">
+        <StatusLive status={status} />
+      </div>
       <div className="mb-4 flex flex-wrap gap-2">
         {TABS.map((t) => (
           <button

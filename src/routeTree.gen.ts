@@ -22,6 +22,7 @@ import { Route as SiteRulesRouteImport } from './routes/_site/rules'
 import { Route as SiteSeasonRouteImport } from './routes/_site/season'
 import { Route as SiteShopRouteImport } from './routes/_site/shop'
 import { Route as SiteWorldRouteImport } from './routes/_site/world'
+import { Route as ApiLiveRouteImport } from './routes/api/live'
 import { Route as SiteRosterIgnRouteImport } from './routes/_site/roster.$ign'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
@@ -89,6 +90,11 @@ const SiteWorldRoute = SiteWorldRouteImport.update({
   path: '/world',
   getParentRoute: () => SiteRoute,
 } as any)
+const ApiLiveRoute = ApiLiveRouteImport.update({
+  id: '/api/live',
+  path: '/api/live',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SiteRosterIgnRoute = SiteRosterIgnRouteImport.update({
   id: '/$ign',
   path: '/$ign',
@@ -113,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/season': typeof SiteSeasonRoute
   '/shop': typeof SiteShopRoute
   '/world': typeof SiteWorldRoute
+  '/api/live': typeof ApiLiveRoute
   '/roster/$ign': typeof SiteRosterIgnRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -128,6 +135,7 @@ export interface FileRoutesByTo {
   '/season': typeof SiteSeasonRoute
   '/shop': typeof SiteShopRoute
   '/world': typeof SiteWorldRoute
+  '/api/live': typeof ApiLiveRoute
   '/': typeof SiteIndexRoute
   '/roster/$ign': typeof SiteRosterIgnRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -146,6 +154,7 @@ export interface FileRoutesById {
   '/_site/season': typeof SiteSeasonRoute
   '/_site/shop': typeof SiteShopRoute
   '/_site/world': typeof SiteWorldRoute
+  '/api/live': typeof ApiLiveRoute
   '/_site/': typeof SiteIndexRoute
   '/_site/roster/$ign': typeof SiteRosterIgnRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
     | '/season'
     | '/shop'
     | '/world'
+    | '/api/live'
     | '/roster/$ign'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/season'
     | '/shop'
     | '/world'
+    | '/api/live'
     | '/'
     | '/roster/$ign'
     | '/api/auth/$'
@@ -197,6 +208,7 @@ export interface FileRouteTypes {
     | '/_site/season'
     | '/_site/shop'
     | '/_site/world'
+    | '/api/live'
     | '/_site/'
     | '/_site/roster/$ign'
     | '/api/auth/$'
@@ -204,6 +216,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   SiteRoute: typeof SiteRouteWithChildren
+  ApiLiveRoute: typeof ApiLiveRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -300,6 +313,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SiteWorldRouteImport
       parentRoute: typeof SiteRoute
     }
+    '/api/live': {
+      id: '/api/live'
+      path: '/api/live'
+      fullPath: '/api/live'
+      preLoaderRoute: typeof ApiLiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_site/roster/$ign': {
       id: '/_site/roster/$ign'
       path: '/$ign'
@@ -363,6 +383,7 @@ const SiteRouteWithChildren = SiteRoute._addFileChildren(SiteRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   SiteRoute: SiteRouteWithChildren,
+  ApiLiveRoute: ApiLiveRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

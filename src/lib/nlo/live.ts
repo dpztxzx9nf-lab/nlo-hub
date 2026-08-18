@@ -1,4 +1,5 @@
 import { getSql } from "@/lib/db";
+import { pingNloSlp } from "@/lib/nlo/slp.server";
 
 export type LiveStatus = {
   online: boolean;
@@ -41,14 +42,20 @@ type McStatus = {
   motd?: { clean?: string };
 };
 
-const CACHE_MS = 15_000;
+const CACHE_MS = 1_000;
+const REFRESH_MS = 1_500;
 const LAST_GOOD_MS = 10 * 60_000;
-const PING_HOSTS = ["nlo.gg", "5.78.90.11"];
-const PING_MS = 8_000;
+const PERSIST_MS = 20_000;
+const MCSTATUS_HOSTS = ["5.78.90.11", "nlo.gg"];
+const MCSTATUS_MS = 6_000;
 
 const globalRef = globalThis as typeof globalThis & {
   __nloSnapshot__?: { at: number; value: WorldSnapshot };
   __nloLastGood__?: { at: number; status: LiveStatus; sample: { ign: string; uuid: string | null }[] };
+  __nloInflight__?: Promise<WorldSnapshot>;
+  __nloLoop__?: boolean;
+  __nloLastPersist__?: number;
+  __nloLastSampleKey__?: string;
 };
 
 function emptyStatus(): LiveStatus {
@@ -62,13 +69,14 @@ function emptyStatus(): LiveStatus {
   };
 }
 
-async function pingOne(host: string): Promise<{
+async function pingMcstatus(host: string): Promise<{
   status: LiveStatus;
   sample: { ign: string; uuid: string | null }[];
 }> {
   const res = await fetch(`https://api.mcstatus.io/v2/status/java/${host}`, {
-    signal: AbortSignal.timeout(PING_MS),
+    signal: AbortSignal.timeout(MCSTATUS_MS),
     headers: { Accept: "application/json" },
+    cache: "no-store",
   });
   if (!res.ok) throw new Error(`status ${res.status}`);
   const data = (await res.json()) as McStatus;
@@ -94,19 +102,34 @@ async function pingOne(host: string): Promise<{
   };
 }
 
-async function pingJava(): Promise<{
+async function pingWorld(): Promise<{
   status: LiveStatus;
   sample: { ign: string; uuid: string | null }[];
 }> {
-  let lastErr: unknown;
-  for (const host of PING_HOSTS) {
-    try {
-      return await pingOne(host);
-    } catch (err) {
-      lastErr = err;
+  try {
+    const slp = await pingNloSlp();
+    return {
+      status: {
+        online: true,
+        players: slp.players,
+        max: slp.max,
+        version: slp.version ?? "26.2",
+        motd: slp.motd,
+        checked: true,
+      },
+      sample: slp.sample,
+    };
+  } catch {
+    let lastErr: unknown;
+    for (const host of MCSTATUS_HOSTS) {
+      try {
+        return await pingMcstatus(host);
+      } catch (err) {
+        lastErr = err;
+      }
     }
+    throw lastErr instanceof Error ? lastErr : new Error("status");
   }
-  throw lastErr instanceof Error ? lastErr : new Error("status");
 }
 
 async function ensureSeenTable() {
@@ -165,20 +188,31 @@ async function loadRoster(onlineNames: Set<string>): Promise<SeenPlayer[]> {
   }));
 }
 
-export async function getWorldSnapshot(): Promise<WorldSnapshot> {
-  const empty: WorldSnapshot = { status: emptyStatus(), onlineNames: [], roster: [] };
-  try {
-    const cached = globalRef.__nloSnapshot__;
-    if (cached && Date.now() - cached.at < CACHE_MS) return cached.value;
+function sampleKey(sample: { ign: string }[]): string {
+  return sample
+    .map((p) => p.ign.toLowerCase())
+    .sort()
+    .join("\n");
+}
 
+async function refreshWorld(): Promise<WorldSnapshot> {
+  if (globalRef.__nloInflight__) return globalRef.__nloInflight__;
+  globalRef.__nloInflight__ = (async () => {
+    const empty: WorldSnapshot = { status: emptyStatus(), onlineNames: [], roster: [] };
     let status = emptyStatus();
     let sample: { ign: string; uuid: string | null }[] = [];
     try {
-      const ping = await pingJava();
+      const ping = await pingWorld();
       status = ping.status;
       sample = ping.sample;
       globalRef.__nloLastGood__ = { at: Date.now(), status, sample };
-      await persistSample(sample);
+      const key = sampleKey(sample);
+      const due = Date.now() - (globalRef.__nloLastPersist__ ?? 0) > PERSIST_MS;
+      if (sample.length > 0 && (due || key !== globalRef.__nloLastSampleKey__)) {
+        await persistSample(sample);
+        globalRef.__nloLastPersist__ = Date.now();
+        globalRef.__nloLastSampleKey__ = key;
+      }
     } catch {
       const last = globalRef.__nloLastGood__;
       if (last && Date.now() - last.at < LAST_GOOD_MS) {
@@ -218,8 +252,31 @@ export async function getWorldSnapshot(): Promise<WorldSnapshot> {
     };
     globalRef.__nloSnapshot__ = { at: Date.now(), value };
     return value;
+  })().finally(() => {
+    globalRef.__nloInflight__ = undefined;
+  });
+  return globalRef.__nloInflight__;
+}
+
+function startRefreshLoop() {
+  if (globalRef.__nloLoop__) return;
+  globalRef.__nloLoop__ = true;
+  const tick = () => {
+    void refreshWorld().finally(() => {
+      setTimeout(tick, REFRESH_MS);
+    });
+  };
+  tick();
+}
+
+export async function getWorldSnapshot(): Promise<WorldSnapshot> {
+  startRefreshLoop();
+  const cached = globalRef.__nloSnapshot__;
+  if (cached && Date.now() - cached.at < CACHE_MS) return cached.value;
+  try {
+    return await refreshWorld();
   } catch {
-    return empty;
+    return cached?.value ?? { status: emptyStatus(), onlineNames: [], roster: [] };
   }
 }
 

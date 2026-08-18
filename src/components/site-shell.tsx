@@ -3,6 +3,7 @@ import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Toaster } from "sonner";
 import { CopyIp } from "@/components/copy-ip";
+import { HeaderLive } from "@/components/status-live";
 import { Button } from "@/components/ui/button";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates";
@@ -70,6 +71,7 @@ function Header() {
           </nav>
 
           <div className="ml-auto hidden items-center gap-2 md:flex">
+            <HeaderLive />
             <CopyIp variant="oak" size="sm" />
             <AuthSlot />
           </div>
