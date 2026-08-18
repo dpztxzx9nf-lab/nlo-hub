@@ -70,24 +70,29 @@ function Header() {
             })}
           </nav>
 
-          <div className="ml-auto hidden items-center gap-2 md:flex">
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
             <HeaderLive />
-            <CopyIp variant="oak" size="sm" />
-            <AuthSlot />
+            <div className="hidden items-center gap-2 md:flex">
+              <CopyIp variant="oak" size="sm" />
+              <AuthSlot />
+            </div>
+            <button
+              type="button"
+              className="grid size-11 place-items-center rounded-sm tex-stone mc-bevel lg:hidden"
+              onClick={() => setOpen((v) => !v)}
+              aria-label={open ? "Close menu" : "Open menu"}
+            >
+              {open ? <X className="size-5" /> : <Menu className="size-5" />}
+            </button>
           </div>
-
-          <button
-            type="button"
-            className="ml-auto grid size-11 place-items-center rounded-sm tex-stone mc-bevel lg:hidden"
-            onClick={() => setOpen((v) => !v)}
-            aria-label={open ? "Close menu" : "Open menu"}
-          >
-            {open ? <X className="size-5" /> : <Menu className="size-5" />}
-          </button>
         </div>
 
         {open ? (
           <div className="border-t border-line px-4 py-4 lg:hidden">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <HeaderLive />
+              <CopyIp variant="default" />
+            </div>
             <nav className="grid gap-1">
               {NAV.map((item) => (
                 <Link
@@ -101,7 +106,6 @@ function Header() {
               ))}
             </nav>
             <div className="mt-4 flex flex-wrap items-center gap-2">
-              <CopyIp variant="default" />
               <AuthSlot />
             </div>
           </div>
