@@ -38,9 +38,13 @@ function Header() {
       <div className="tex-oak border-b border-line">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
           <Link to="/" className="flex items-center gap-2 pr-2" onClick={() => setOpen(false)}>
-            <span className="grid size-9 place-items-center rounded-sm tex-grass mc-bevel">
-              <span className="font-display text-lg leading-none text-accent-foreground">N</span>
-            </span>
+            <img
+              src="/__grok/nlo-180.png"
+              alt=""
+              width={36}
+              height={36}
+              className="size-9 rounded-sm object-cover mc-bevel"
+            />
             <span className="font-display text-2xl leading-none tracking-wide">{SERVER.name}</span>
           </Link>
 

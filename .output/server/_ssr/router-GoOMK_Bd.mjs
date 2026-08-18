@@ -334,7 +334,7 @@ var Route$15 = createRootRoute({
 			},
 			{
 				rel: "apple-touch-icon",
-				href: "/__grok/icon-180.png"
+				href: "/__grok/nlo-180.png"
 			},
 			{
 				rel: "stylesheet",

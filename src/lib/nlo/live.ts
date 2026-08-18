@@ -41,11 +41,15 @@ type McStatus = {
   motd?: { clean?: string };
 };
 
-const CACHE_MS = 20_000;
+const CACHE_MS = 15_000;
+const LAST_GOOD_MS = 10 * 60_000;
+const PING_HOSTS = ["nlo.gg", "5.78.90.11"];
+const PING_MS = 8_000;
+
 const globalRef = globalThis as typeof globalThis & {
   __nloSnapshot__?: { at: number; value: WorldSnapshot };
+  __nloLastGood__?: { at: number; status: LiveStatus; sample: { ign: string; uuid: string | null }[] };
 };
-globalRef.__nloSnapshot__ = undefined;
 
 function emptyStatus(): LiveStatus {
   return {
@@ -58,14 +62,15 @@ function emptyStatus(): LiveStatus {
   };
 }
 
-async function pingJava(): Promise<{
+async function pingOne(host: string): Promise<{
   status: LiveStatus;
   sample: { ign: string; uuid: string | null }[];
 }> {
-  const res = await fetch("https://api.mcstatus.io/v2/status/java/nlo.gg", {
-    signal: AbortSignal.timeout(4000),
+  const res = await fetch(`https://api.mcstatus.io/v2/status/java/${host}`, {
+    signal: AbortSignal.timeout(PING_MS),
+    headers: { Accept: "application/json" },
   });
-  if (!res.ok) throw new Error("status");
+  if (!res.ok) throw new Error(`status ${res.status}`);
   const data = (await res.json()) as McStatus;
   const sample = (data.players?.list ?? [])
     .map((p) => {
@@ -74,10 +79,12 @@ async function pingJava(): Promise<{
       return { ign, uuid: p.uuid ?? null };
     })
     .filter((p): p is { ign: string; uuid: string | null } => Boolean(p));
+  const online = Boolean(data.online);
+  const players = Number(data.players?.online);
   return {
     status: {
-      online: Boolean(data.online),
-      players: data.players?.online ?? sample.length,
+      online,
+      players: Number.isFinite(players) ? players : sample.length,
       max: data.players?.max ?? 16,
       version: data.version?.name_clean ?? "26.2",
       motd: data.motd?.clean?.replace(/\s+/g, " ").trim() ?? null,
@@ -85,6 +92,21 @@ async function pingJava(): Promise<{
     },
     sample,
   };
+}
+
+async function pingJava(): Promise<{
+  status: LiveStatus;
+  sample: { ign: string; uuid: string | null }[];
+}> {
+  let lastErr: unknown;
+  for (const host of PING_HOSTS) {
+    try {
+      return await pingOne(host);
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("status");
 }
 
 async function ensureSeenTable() {
@@ -155,9 +177,16 @@ export async function getWorldSnapshot(): Promise<WorldSnapshot> {
       const ping = await pingJava();
       status = ping.status;
       sample = ping.sample;
+      globalRef.__nloLastGood__ = { at: Date.now(), status, sample };
       await persistSample(sample);
     } catch {
-      status = { ...emptyStatus(), checked: false };
+      const last = globalRef.__nloLastGood__;
+      if (last && Date.now() - last.at < LAST_GOOD_MS) {
+        status = last.status;
+        sample = last.sample;
+      } else {
+        status = { ...emptyStatus(), checked: false };
+      }
     }
 
     const onlineNames = new Set(sample.map((p) => p.ign.toLowerCase()));

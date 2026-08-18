@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { ArrowRight, Swords, Trophy, Wallet } from "lucide-react";
 import { CopyIp } from "@/components/copy-ip";
 import { PlayerFace } from "@/components/player-face";
-import { StatusLive } from "@/components/status-live";
+import { StatusLive, LiveCount } from "@/components/status-live";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/page-frame";
@@ -73,7 +74,7 @@ function Home() {
       <section className="mx-auto grid max-w-6xl gap-3 px-4 py-8 sm:grid-cols-3">
         <Stat icon={Swords} label="Open conflict" value="Outside spawn" />
         <Stat icon={Wallet} label="Economy" value="AH + player shops" />
-        <Stat icon={Trophy} label="On now" value={`${status.players}/${status.max}`} />
+        <Stat icon={Trophy} label="On now" value={<LiveCount status={status} />} />
       </section>
 
       <section className="mx-auto grid max-w-6xl gap-4 px-4 md:grid-cols-3">
@@ -197,7 +198,7 @@ function Stat({
 }: {
   icon: typeof Swords;
   label: string;
-  value: string;
+  value: ReactNode;
 }) {
   return (
     <div className="tex-oak rounded-lg p-1 mc-bevel">

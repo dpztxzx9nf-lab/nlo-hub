@@ -190,9 +190,12 @@ function emptyStatus() {
 		checked: false
 	};
 }
-async function pingJava() {
-	const res = await fetch("https://api.mcstatus.io/v2/status/java/nlo.gg", { signal: AbortSignal.timeout(4e3) });
-	if (!res.ok) throw new Error("status");
+async function pingOne(host) {
+	const res = await fetch(`https://api.mcstatus.io/v2/status/java/${host}`, {
+		signal: AbortSignal.timeout(8e3),
+		headers: { Accept: "application/json" }
+	});
+	if (!res.ok) throw new Error("status " + res.status);
 	const data = await res.json();
 	const sample = (data.players?.list ?? []).map((p) => {
 		const ign = (p.name_clean || p.name_raw || "").trim();
@@ -213,6 +216,17 @@ async function pingJava() {
 		},
 		sample
 	};
+}
+async function pingJava() {
+	let lastErr;
+	for (const host of ["nlo.gg", "5.78.90.11"]) {
+		try {
+			return await pingOne(host);
+		} catch (e) {
+			lastErr = e;
+		}
+	}
+	throw lastErr instanceof Error ? lastErr : new Error("status");
 }
 async function ensureSeenTable() {
 	await (await getSql()).query(`
@@ -271,12 +285,23 @@ async function getWorldSnapshot() {
 			const ping = await pingJava();
 			status = ping.status;
 			sample = ping.sample;
+			globalRef.__nloLastGood__ = {
+				at: Date.now(),
+				status,
+				sample
+			};
 			await persistSample(sample);
 		} catch {
-			status = {
-				...emptyStatus(),
-				checked: false
-			};
+			const last = globalRef.__nloLastGood__;
+			if (last && Date.now() - last.at < 6e5) {
+				status = last.status;
+				sample = last.sample;
+			} else {
+				status = {
+					...emptyStatus(),
+					checked: false
+				};
+			}
 		}
 		const onlineNames = new Set(sample.map((p) => p.ign.toLowerCase()));
 		let roster = [];
