@@ -68,50 +68,29 @@ for p in root.rglob("*"):
 print("strip_files=", count)
 PY
 
-echo "== internal secret =="
-python3 - <<'PY'
-from pathlib import Path
-import secrets
-path = Path("/opt/nlo/nlo.env")
-path.parent.mkdir(parents=True, exist_ok=True)
-text = path.read_text() if path.exists() else ""
-lines = text.splitlines()
-if not any(line.startswith("NLO_INTERNAL_SECRET=") and line.split("=", 1)[1].strip() and not line.split("=", 1)[1].startswith("replace-") for line in lines):
-    secret = secrets.token_hex(32)
-    if any(line.startswith("NLO_INTERNAL_SECRET=") for line in lines):
-        lines = ["NLO_INTERNAL_SECRET=" + secret if line.startswith("NLO_INTERNAL_SECRET=") else line for line in lines]
-    else:
-        if lines and lines[-1].strip():
-            lines.append("")
-        lines.append("NLO_INTERNAL_SECRET=" + secret)
-    path.write_text("\n".join(lines) + "\n")
-    path.chmod(0o600)
-    print("wrote NLO_INTERNAL_SECRET")
-else:
-    print("NLO_INTERNAL_SECRET present")
-PY
+echo "== internal secret / stripe webhook / auth secret =="
+python3 "$APP/deploy/provision-nlo-env.py"
 
 echo "== pglite data dir =="
 mkdir -p /opt/nlo/pglite
-python3 - <<'PY'
-from pathlib import Path
-path = Path("/opt/nlo/nlo.env")
-lines = path.read_text().splitlines() if path.exists() else []
-if not any(line.startswith("PGLITE_DATA_DIR=") for line in lines):
-    if lines and lines[-1].strip():
-        lines.append("")
-    lines.append("PGLITE_DATA_DIR=/opt/nlo/pglite")
-    path.write_text("\n".join(lines) + "\n")
-    path.chmod(0o600)
-    print("wrote PGLITE_DATA_DIR")
-else:
-    print("PGLITE_DATA_DIR present")
-PY
+
+echo "== caddy www → apex =="
+if [ -f "$APP/deploy/Caddyfile" ] && [ -d /etc/caddy ]; then
+  cp "$APP/deploy/Caddyfile" /etc/caddy/Caddyfile
+  if command -v systemctl >/dev/null; then
+    systemctl reload caddy 2>/dev/null || systemctl reload caddy.service 2>/dev/null || true
+  fi
+  echo "caddy reloaded"
+else
+  echo "caddy skip"
+fi
 
 echo "== restart =="
 systemctl restart nlo 2>/dev/null || systemctl restart nlo.service 2>/dev/null || true
-sleep 2
+sleep 3
 systemctl is-active nlo 2>/dev/null || true
+curl -sS --max-time 8 http://127.0.0.1:3000/api/shop/status || true
+echo
 
 echo "== verify =="
 if grep -r "mock list" .output 2>/dev/null | head -3; then

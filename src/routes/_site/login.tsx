@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PageFrame, Panel } from "@/components/page-frame";
 import { Button } from "@/components/ui/button";
@@ -14,11 +14,23 @@ export const Route = createFileRoute("/_site/login")({
 function LoginPage() {
   const [mode, setMode] = useState<"in" | "up">("in");
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const q = new URLSearchParams(window.location.search);
+    const err = q.get("error");
+    if (!err || err === "undefined") return;
+    if (err === "access_denied") {
+      toast.error("Sign-in was canceled or blocked. Try email if X or Google bounce you.");
+      return;
+    }
+    toast.error("X and Google need a production Grok auth client on this desk. Use email for now.");
+  }, []);
+
   return (
     <PageFrame
       eyebrow="Gate"
       title={mode === "in" ? "Sign in" : "Create account"}
-      lead="Google, X, or email. Passwords are hashed. Use 12+ characters with a letter and a number."
+      lead="Google, X, or email. If X or Google bounce you back, use email — same desk. Passwords are hashed. Use 12+ characters with a letter and a number."
     >
       <Panel texture="oak" className="mx-auto max-w-md">
         {authEnabled ? (
@@ -28,7 +40,9 @@ function LoginPage() {
                 key={p.providerId}
                 type="button"
                 variant={p.idp === "google" ? "default" : "stone"}
-                onClick={() => signIn(p.providerId, { callbackURL: "/account" })}
+                onClick={() =>
+                  signIn(p.providerId, { callbackURL: "/account", errorCallbackURL: "/login" })
+                }
               >
                 Continue with {p.label}
               </Button>

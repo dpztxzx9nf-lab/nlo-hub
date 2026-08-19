@@ -7,3 +7,4 @@ attachments
 .DS_Store
 paper/nlocoins/build
 .output
+__pycache__/

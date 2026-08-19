@@ -22,8 +22,14 @@ New-Item -ItemType Directory -Force -Path $nloDir | Out-Null
 Copy-Item -Force $Jar (Join-Path $Plugins 'NLOCoins-1.0.0.jar')
 
 $line = ssh -i $SshKey -o BatchMode=yes -o ConnectTimeout=10 root@5.78.90.11 "grep ^NLO_INTERNAL_SECRET= /opt/nlo/nlo.env"
-if (-not $line -or $line -notmatch '^NLO_INTERNAL_SECRET=([0-9a-fA-F]{32,})$') {
-    throw 'Could not read NLO_INTERNAL_SECRET from the hub box.'
+if (-not $line -or $line -notmatch '^NLO_INTERNAL_SECRET=(\S+)$') {
+    $localSecret = Join-Path $nloDir 'nlo.env'
+    if (Test-Path -LiteralPath $localSecret) {
+        $line = (Get-Content -LiteralPath $localSecret | Where-Object { $_ -like 'NLO_INTERNAL_SECRET=*' } | Select-Object -First 1)
+    }
+}
+if (-not $line -or $line -notmatch '^NLO_INTERNAL_SECRET=(\S+)$') {
+    throw 'Could not read NLO_INTERNAL_SECRET from the hub box or plugins/NLOCoins/nlo.env.'
 }
 $secret = $Matches[1]
 Set-Content -LiteralPath (Join-Path $nloDir 'nlo.env') -Value "NLO_INTERNAL_SECRET=$secret" -Encoding ascii

@@ -89,6 +89,11 @@ export function webhookSecret() {
   return process.env.STRIPE_WEBHOOK_SECRET?.trim() || "";
 }
 
+export function webhookConfigured() {
+  const value = webhookSecret();
+  return value.startsWith("whsec_");
+}
+
 export function verifyStripeSignature(payload: string, header: string, secret: string, now = Date.now()): boolean {
   if (!payload || !header || !secret) return false;
   const pairs = header.split(",").map((part) => {

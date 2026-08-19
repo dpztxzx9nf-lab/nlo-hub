@@ -5,8 +5,19 @@
 #   1. Point this file at /etc/caddy/Caddyfile
 #   2. App listens on 127.0.0.1:3000
 #   3. nlo.gg A record stays on this box (grey cloud in Cloudflare)
+#
+# www must redirect to the apex. Session cookies are __Host- (host-only),
+# so www.nlo.gg and nlo.gg cannot share a signed-in desk.
 
-nlo.gg, www.nlo.gg {
+www.nlo.gg {
+	redir https://nlo.gg{uri} permanent
+}
+
+nlo.gg {
 	encode gzip
-	reverse_proxy 127.0.0.1:3000
+	reverse_proxy 127.0.0.1:3000 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Host {host}
+	}
 }

@@ -65,6 +65,9 @@ if ! grep -q '^STRIPE_SECRET_KEY=sk_' "$ENV_FILE" 2>/dev/null; then
   exit 2
 fi
 
+echo "== provision webhook + auth secret =="
+python3 "$(dirname "$0")/provision-nlo-env.py"
+
 # Install unit with EnvironmentFile
 cp "$UNIT_SRC" /etc/systemd/system/nlo.service
 systemctl daemon-reload
@@ -84,3 +87,4 @@ PY
 
 echo "done — open https://nlo.gg/shop while signed in"
 echo "Shop should say: Card checkout is live."
+echo "Status: https://nlo.gg/api/shop/status"

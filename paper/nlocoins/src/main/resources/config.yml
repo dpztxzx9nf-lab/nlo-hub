@@ -4,7 +4,9 @@ hub-url: https://nlo.gg
 # Shared secret. Prefer NLO_INTERNAL_SECRET in the process env or secret-file.
 # Never put this in a client or commit it.
 internal-secret: ""
-secret-file: /opt/nlo/nlo.env
+# Relative to the Paper server root (works on the Dell). Do not point this at
+# the Hetzner hub path — that file is not on the game box.
+secret-file: plugins/NLOCoins/nlo.env
 
 # How often to drain pending grants for online players.
 poll-seconds: 15

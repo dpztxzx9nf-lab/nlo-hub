@@ -96,3 +96,32 @@ test("RCON shop grant command targets NLOP, not eco give", () => {
   assert.equal(command, "season admin balance Steve add 1000 nlo-shop-12");
   assert.match("Adjusted Steve by 1000.", /adjusted/i);
 });
+
+function oauthMode(env) {
+  const id = String(env.GROK_AUTH_CLIENT_ID ?? "").trim();
+  const secret = String(env.GROK_AUTH_CLIENT_SECRET ?? "").trim();
+  return id && secret ? "production" : "preview";
+}
+
+function webhookConfigured(value) {
+  return String(value ?? "").trim().startsWith("whsec_");
+}
+
+test("OAuth is preview unless both GROK_AUTH creds are set", () => {
+  assert.equal(oauthMode({}), "preview");
+  assert.equal(oauthMode({ GROK_AUTH_CLIENT_ID: "nlo" }), "preview");
+  assert.equal(oauthMode({ GROK_AUTH_CLIENT_ID: "nlo", GROK_AUTH_CLIENT_SECRET: "s" }), "production");
+});
+
+test("shop webhook URL and signing secret shape", () => {
+  assert.equal("https://nlo.gg/api/stripe/webhook", "https://nlo.gg/api/stripe/webhook");
+  assert.equal(webhookConfigured("whsec_abc"), true);
+  assert.equal(webhookConfigured("replace-me"), false);
+  assert.equal(webhookConfigured(""), false);
+});
+
+test("plugin secret file lives on the Paper box, not the hub path", () => {
+  const secretFile = "plugins/NLOCoins/nlo.env";
+  assert.equal(secretFile.startsWith("/opt/nlo/"), false);
+  assert.match(secretFile, /NLOCoins/);
+});

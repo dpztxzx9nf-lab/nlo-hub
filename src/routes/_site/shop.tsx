@@ -38,6 +38,7 @@ function ShopPage() {
   });
   const [card, setCard] = useState(false);
   const [live, setLive] = useState(false);
+  const [webhook, setWebhook] = useState(false);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<(typeof COIN_PACKS)[number] | null>(null);
@@ -63,6 +64,7 @@ function ShopPage() {
         setDesk(grants);
         setCard(pay.card);
         setLive(Boolean(pay.live));
+        setWebhook(Boolean(pay.webhook));
         setReady(true);
       })
       .catch(() => {
@@ -157,9 +159,11 @@ function ShopPage() {
             <p className="mt-1 text-sm text-muted">
               {!card
                 ? "Packs are listed. Card checkout turns on when Stripe is connected."
-                : live
-                  ? "Real card charges. Stripe takes the payment — we never see the number. Coins then queue for your claimed IGN."
-                  : "Stripe is still in test mode. No real money moves until a live secret key is installed."}
+                : !live
+                  ? "Stripe is still in test mode. No real money moves until a live secret key is installed."
+                  : webhook
+                    ? "Real card charges. Stripe confirms even if you close the tab, then coins queue for your claimed IGN."
+                    : "Real card charges. Return to this page after Stripe so we can credit the pack."}
             </p>
           </div>
           <Button variant="stone" asChild>

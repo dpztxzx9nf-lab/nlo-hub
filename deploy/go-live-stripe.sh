@@ -94,6 +94,9 @@ if key_file.exists():
 print("wrote /opt/nlo/nlo.env (live key" + (", webhook secret" if secret else ", existing webhook") + ")")
 PY
 
+echo "== provision remaining secrets =="
+python3 /opt/nlo/app/deploy/provision-nlo-env.py
+
 cp /opt/nlo/app/deploy/nlo.service /etc/systemd/system/nlo.service
 systemctl daemon-reload
 systemctl restart nlo

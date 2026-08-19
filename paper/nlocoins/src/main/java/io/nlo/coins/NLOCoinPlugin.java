@@ -193,16 +193,27 @@ public final class NLOCoinPlugin extends JavaPlugin implements Listener {
         if (env != null && !env.isBlank()) {
             return env.trim();
         }
+        String fromData = readSecretFile(getDataFolder().toPath().resolve("nlo.env"));
+        if (!fromData.isBlank()) {
+            return fromData;
+        }
         String configured = getConfig().getString("internal-secret", "");
         if (configured != null && !configured.isBlank()) {
             return configured.trim();
         }
-        String file = getConfig().getString("secret-file", "/opt/nlo/nlo.env");
+        String file = getConfig().getString("secret-file", "plugins/NLOCoins/nlo.env");
         if (file == null || file.isBlank()) {
             return "";
         }
         Path path = Path.of(file);
-        if (!Files.isRegularFile(path)) {
+        if (!path.isAbsolute()) {
+            path = getServer().getWorldContainer().toPath().resolve(path);
+        }
+        return readSecretFile(path);
+    }
+
+    private static String readSecretFile(Path path) {
+        if (path == null || !Files.isRegularFile(path)) {
             return "";
         }
         try {
