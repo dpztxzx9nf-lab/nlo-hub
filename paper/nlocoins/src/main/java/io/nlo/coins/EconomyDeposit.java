@@ -27,17 +27,17 @@ final class EconomyDeposit {
     }
 
     boolean deposit(Player player, GrantModels.Grant grant) {
-        String reason = reason(grant.id());
-        if (alreadyApplied(player.getUniqueId(), grant.id(), grant.coins())) {
+        UUID playerId = player.getUniqueId();
+        if (alreadyApplied(playerId, grant.id(), grant.coins())) {
             return true;
         }
         if (nlopAvailable()) {
-            String command = "season admin balance " + player.getName() + " add " + grant.coins() + " " + reason;
+            long before = balance(playerId);
+            String command = "season admin balance " + player.getName() + " add " + grant.coins()
+                    + " " + reason(grant.id());
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
-            if (alreadyApplied(player.getUniqueId(), grant.id(), grant.coins())
-                    || balanceGrew(player.getUniqueId(), grant.coins())) {
-                return true;
-            }
+            return alreadyApplied(playerId, grant.id(), grant.coins())
+                    || credited(before, balance(playerId), grant.coins());
         }
         if (vaultDeposit(player, grant.coins())) {
             return true;
@@ -45,7 +45,7 @@ final class EconomyDeposit {
         if (essentialsGive(player.getName(), grant.coins())) {
             return true;
         }
-        return alreadyApplied(player.getUniqueId(), grant.id(), grant.coins());
+        return alreadyApplied(playerId, grant.id(), grant.coins());
     }
 
     private boolean nlopAvailable() {
@@ -90,9 +90,8 @@ final class EconomyDeposit {
                 "eco give " + playerName + " " + coins);
     }
 
-    private boolean balanceGrew(UUID playerId, long coins) {
-        long after = balance(playerId);
-        return after >= coins;
+    static boolean credited(long before, long after, long amount) {
+        return before >= 0L && after >= 0L && amount > 0L && after - before >= amount;
     }
 
     private long balance(UUID playerId) {
@@ -132,7 +131,8 @@ final class EconomyDeposit {
     }
 
     private String jdbcUrl() {
-        return "jdbc:sqlite:file:" + gameplayDb.toAbsolutePath().toString().replace('\\', '/');
+        return "jdbc:sqlite:file:" + gameplayDb.toAbsolutePath().toString().replace('\\', '/')
+                + "?busy_timeout=5000";
     }
 
     static String reason(long grantId) {

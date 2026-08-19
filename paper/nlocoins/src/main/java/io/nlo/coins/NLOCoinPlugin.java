@@ -6,18 +6,24 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class NLOCoinPlugin extends JavaPlugin implements Listener {
     private GrantClient client;
     private EconomyDeposit economy;
     private final Set<Long> inFlight = ConcurrentHashMap.newKeySet();
+    private final AtomicInteger online = new AtomicInteger();
+    private final AtomicBoolean polling = new AtomicBoolean();
+    private volatile long lastWarnAt;
 
     @Override
     public void onEnable() {
@@ -34,6 +40,7 @@ public final class NLOCoinPlugin extends JavaPlugin implements Listener {
                 .resolve(getConfig().getString("gameplay-db", "plugins/NLOP/gameplay.db"));
         economy = new EconomyDeposit(this, db);
         getServer().getPluginManager().registerEvents(this, this);
+        online.set(Bukkit.getOnlinePlayers().size());
         long pollTicks = Math.max(5L, getConfig().getLong("poll-seconds", 15L)) * 20L;
         getServer().getScheduler().runTaskTimerAsynchronously(this, this::pollSafe, 100L, pollTicks);
         getLogger().info("NLOCoins delivering shop packs from " + hub);
@@ -41,11 +48,23 @@ public final class NLOCoinPlugin extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
+        online.incrementAndGet();
         long delay = Math.max(1L, getConfig().getLong("join-delay-ticks", 40L));
         getServer().getScheduler().runTaskLater(this, () -> drainPlayer(event.getPlayer()), delay);
     }
 
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        online.updateAndGet(n -> Math.max(0, n - 1));
+    }
+
     private void pollSafe() {
+        if (online.get() <= 0) {
+            return;
+        }
+        if (!polling.compareAndSet(false, true)) {
+            return;
+        }
         try {
             List<GrantModels.Grant> pending = client.pending();
             if (pending.isEmpty()) {
@@ -60,7 +79,9 @@ public final class NLOCoinPlugin extends JavaPlugin implements Listener {
                 }
             });
         } catch (Exception failure) {
-            getLogger().log(Level.WARNING, "Coin grant poll failed: " + failure.getMessage());
+            warnSparse("Coin grant poll failed: " + failure.getMessage());
+        } finally {
+            polling.set(false);
         }
     }
 
@@ -79,7 +100,7 @@ public final class NLOCoinPlugin extends JavaPlugin implements Listener {
                     }
                 });
             } catch (Exception failure) {
-                getLogger().log(Level.WARNING, "Coin grant login drain failed: " + failure.getMessage());
+                warnSparse("Coin grant login drain failed: " + failure.getMessage());
             }
         });
     }
@@ -147,6 +168,15 @@ public final class NLOCoinPlugin extends JavaPlugin implements Listener {
                 player.sendMessage("§6NLO §8| §f" + grant.coins() + " shop coins delivered.");
             }
         });
+    }
+
+    private void warnSparse(String message) {
+        long now = System.currentTimeMillis();
+        if (now - lastWarnAt < 60_000L) {
+            return;
+        }
+        lastWarnAt = now;
+        getLogger().warning(message);
     }
 
     private Player onlineFor(String claimed) {

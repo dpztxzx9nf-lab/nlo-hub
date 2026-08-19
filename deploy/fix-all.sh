@@ -91,6 +91,23 @@ else:
     print("NLO_INTERNAL_SECRET present")
 PY
 
+echo "== pglite data dir =="
+mkdir -p /opt/nlo/pglite
+python3 - <<'PY'
+from pathlib import Path
+path = Path("/opt/nlo/nlo.env")
+lines = path.read_text().splitlines() if path.exists() else []
+if not any(line.startswith("PGLITE_DATA_DIR=") for line in lines):
+    if lines and lines[-1].strip():
+        lines.append("")
+    lines.append("PGLITE_DATA_DIR=/opt/nlo/pglite")
+    path.write_text("\n".join(lines) + "\n")
+    path.chmod(0o600)
+    print("wrote PGLITE_DATA_DIR")
+else:
+    print("PGLITE_DATA_DIR present")
+PY
+
 echo "== restart =="
 systemctl restart nlo 2>/dev/null || systemctl restart nlo.service 2>/dev/null || true
 sleep 2

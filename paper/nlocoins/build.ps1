@@ -2,19 +2,31 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $ProjectDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$MinecraftRoot = Resolve-Path (Join-Path $ProjectDir '..\..\..\Minecraft') -ErrorAction SilentlyContinue
-if (-not $MinecraftRoot) {
-    $MinecraftRoot = Resolve-Path (Join-Path $ProjectDir '..\..\Minecraft') -ErrorAction SilentlyContinue
-}
-$ServerDir = if ($MinecraftRoot) { Join-Path $MinecraftRoot 'servers\nlo-local' } else { '' }
-$VersionJar = ''
-foreach ($candidate in @(
-        (Join-Path $ServerDir 'versions\26.2\paper-26.2.jar'),
-        (Join-Path $ServerDir 'versions\26.1.2\paper-26.1.2.jar')
-    )) {
-    if ($candidate -and (Test-Path -LiteralPath $candidate)) {
-        $VersionJar = $candidate
+$MinecraftRoots = @(
+    (Join-Path $ProjectDir '..\..\..'),
+    (Join-Path $ProjectDir '..\..\..\Minecraft'),
+    'C:\Projects\Minecraft'
+)
+$ServerDir = ''
+foreach ($root in $MinecraftRoots) {
+    $candidateRoot = $null
+    try { $candidateRoot = (Resolve-Path $root -ErrorAction Stop).Path } catch { continue }
+    $maybeServer = Join-Path $candidateRoot 'servers\nlo-local'
+    if (Test-Path -LiteralPath $maybeServer) {
+        $ServerDir = $maybeServer
         break
+    }
+}
+$VersionJar = ''
+if ($ServerDir) {
+    foreach ($candidate in @(
+            (Join-Path $ServerDir 'versions\26.2\paper-26.2.jar'),
+            (Join-Path $ServerDir 'versions\26.1.2\paper-26.1.2.jar')
+        )) {
+        if (Test-Path -LiteralPath $candidate) {
+            $VersionJar = $candidate
+            break
+        }
     }
 }
 if (-not $VersionJar) {
@@ -81,13 +93,13 @@ $TestSourcesFile = Join-Path $BuildDir 'java-test-sources.args'
     @($TestSources | ForEach-Object { '"' + $_.Replace('\', '/') + '"' }),
     [Text.UTF8Encoding]::new($false)
 )
-& $Javac -encoding UTF-8 --release 21 -classpath ($ClassesDir) -d $TestDir "@$TestSourcesFile"
+& $Javac -encoding UTF-8 --release 21 -classpath ($Classpath + [IO.Path]::PathSeparator + $ClassesDir) -d $TestDir "@$TestSourcesFile"
 if ($LASTEXITCODE -ne 0) {
     throw "test javac failed with exit code $LASTEXITCODE"
 }
 $Java = if (Test-Path (Join-Path $JdkBin 'java.exe')) { Join-Path $JdkBin 'java.exe' } else { 'java' }
-foreach ($testClass in @('io.nlo.coins.IgnNamesTest', 'io.nlo.coins.GrantModelsTest')) {
-    & $Java -classpath ($ClassesDir + [IO.Path]::PathSeparator + $TestDir) $testClass
+foreach ($testClass in @('io.nlo.coins.IgnNamesTest', 'io.nlo.coins.GrantModelsTest', 'io.nlo.coins.EconomyDepositTest')) {
+    & $Java -classpath ($Classpath + [IO.Path]::PathSeparator + $ClassesDir + [IO.Path]::PathSeparator + $TestDir) $testClass
     if ($LASTEXITCODE -ne 0) {
         throw "$testClass failed"
     }

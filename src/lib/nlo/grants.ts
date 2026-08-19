@@ -17,6 +17,10 @@ export {
   publicGrantStatus,
 } from "@/lib/nlo/grant-shared";
 
+const globalGrant = globalThis as typeof globalThis & {
+  __nloGrantTablesReady__?: Promise<void>;
+};
+
 const DELIVERABLE_WHERE = `
   ign is not null
   and ign <> ''
@@ -68,6 +72,16 @@ export function unauthorizedInternal(): Response {
 }
 
 export async function ensureGrantTables() {
+  globalGrant.__nloGrantTablesReady__ ??= (async () => {
+    await ensureGrantTablesOnce();
+  })().catch((err) => {
+    globalGrant.__nloGrantTablesReady__ = undefined;
+    throw err;
+  });
+  await globalGrant.__nloGrantTablesReady__;
+}
+
+async function ensureGrantTablesOnce() {
   const sql = await getSql();
   await sql.query(`
     create table if not exists nlo_coin_grants (

@@ -29,21 +29,20 @@ function deliveryToast(grant) {
 }
 
 function verifyStripeSignature(payload, header, secret, now) {
-  const parts = Object.fromEntries(
-    header.split(",").map((part) => {
-      const [k, ...rest] = part.split("=");
-      return [k?.trim(), rest.join("=").trim()];
-    }),
-  );
-  const timestamp = Number(parts.t);
-  const signature = parts.v1;
-  if (!Number.isFinite(timestamp) || !signature) return false;
+  const pairs = header.split(",").map((part) => {
+    const [k, ...rest] = part.split("=");
+    return [k?.trim(), rest.join("=").trim()];
+  });
+  const timestamp = Number(pairs.find(([k]) => k === "t")?.[1]);
+  const signatures = pairs.filter(([k]) => k === "v1").map(([, v]) => v);
+  if (!Number.isFinite(timestamp) || signatures.length === 0) return false;
   if (Math.abs(now / 1000 - timestamp) > 300) return false;
   const expected = createHmac("sha256", secret).update(`${timestamp}.${payload}`).digest("hex");
-  const a = Buffer.from(signature);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
+  const expectedBuf = Buffer.from(expected);
+  return signatures.some((signature) => {
+    const a = Buffer.from(signature);
+    return a.length === expectedBuf.length && timingSafeEqual(a, expectedBuf);
+  });
 }
 
 test("IGN format and Floodgate prefix matching", () => {
@@ -75,6 +74,15 @@ test("Stripe webhook HMAC matches Stripe's signed payload", () => {
   const signature = createHmac("sha256", secret).update(`${timestamp}.${payload}`).digest("hex");
   assert.equal(
     verifyStripeSignature(payload, `t=${timestamp},v1=${signature}`, secret, timestamp * 1000),
+    true,
+  );
+  assert.equal(
+    verifyStripeSignature(
+      payload,
+      `t=${timestamp},v1=${"0".repeat(signature.length)},v1=${signature}`,
+      secret,
+      timestamp * 1000,
+    ),
     true,
   );
   assert.equal(
