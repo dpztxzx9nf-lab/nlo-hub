@@ -68,6 +68,29 @@ for p in root.rglob("*"):
 print("strip_files=", count)
 PY
 
+echo "== internal secret =="
+python3 - <<'PY'
+from pathlib import Path
+import secrets
+path = Path("/opt/nlo/nlo.env")
+path.parent.mkdir(parents=True, exist_ok=True)
+text = path.read_text() if path.exists() else ""
+lines = text.splitlines()
+if not any(line.startswith("NLO_INTERNAL_SECRET=") and line.split("=", 1)[1].strip() and not line.split("=", 1)[1].startswith("replace-") for line in lines):
+    secret = secrets.token_hex(32)
+    if any(line.startswith("NLO_INTERNAL_SECRET=") for line in lines):
+        lines = ["NLO_INTERNAL_SECRET=" + secret if line.startswith("NLO_INTERNAL_SECRET=") else line for line in lines]
+    else:
+        if lines and lines[-1].strip():
+            lines.append("")
+        lines.append("NLO_INTERNAL_SECRET=" + secret)
+    path.write_text("\n".join(lines) + "\n")
+    path.chmod(0o600)
+    print("wrote NLO_INTERNAL_SECRET")
+else:
+    print("NLO_INTERNAL_SECRET present")
+PY
+
 echo "== restart =="
 systemctl restart nlo 2>/dev/null || systemctl restart nlo.service 2>/dev/null || true
 sleep 2
