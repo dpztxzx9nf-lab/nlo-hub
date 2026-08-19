@@ -1,10 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PageFrame, Panel } from "@/components/page-frame";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { COIN_PACKS } from "@/lib/nlo/content";
 import { CoinDeliveryPanel } from "@/components/coin-delivery";
@@ -21,12 +20,18 @@ import {
 import { deliveryToast } from "@/lib/nlo/grant-shared";
 import { formatInt, formatWhen } from "@/lib/utils";
 
+const siteRoute = getRouteApi("/_site");
+
 export const Route = createFileRoute("/_site/shop")({
+  loader: async () => ({ pay: await getPayStatus() }),
   component: ShopPage,
 });
 
 function ShopPage() {
+  const { pay } = Route.useLoaderData();
+  const { session } = siteRoute.useLoaderData();
   const { user, isPending } = useCurrentUserState();
+  const signedIn = Boolean(user || session);
   const [coins, setCoins] = useState(0);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [desk, setDesk] = useState<GrantDesk>({
@@ -36,10 +41,10 @@ function ShopPage() {
     deliveredCoins: 0,
     grants: [],
   });
-  const [card, setCard] = useState(false);
-  const [live, setLive] = useState(false);
-  const [webhook, setWebhook] = useState(false);
-  const [plugin, setPlugin] = useState(false);
+  const [card, setCard] = useState(pay.card);
+  const [live, setLive] = useState(Boolean(pay.live));
+  const [webhook, setWebhook] = useState(Boolean(pay.webhook));
+  const [plugin, setPlugin] = useState(Boolean(pay.plugin));
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<(typeof COIN_PACKS)[number] | null>(null);
@@ -58,15 +63,15 @@ function ShopPage() {
     if (isPending || !user) return;
     let cancelled = false;
     void Promise.all([getWallet(), getOrders(), getPayStatus(), getGrantDesk()])
-      .then(([w, o, pay, grants]) => {
+      .then(([w, o, nextPay, grants]) => {
         if (cancelled) return;
         setCoins(w.coins);
         setOrders(o);
         setDesk(grants);
-        setCard(pay.card);
-        setLive(Boolean(pay.live));
-        setWebhook(Boolean(pay.webhook));
-        setPlugin(Boolean(pay.plugin));
+        setCard(nextPay.card);
+        setLive(Boolean(nextPay.live));
+        setWebhook(Boolean(nextPay.webhook));
+        setPlugin(Boolean(nextPay.plugin));
         setReady(true);
       })
       .catch(() => {
@@ -119,16 +124,7 @@ function ShopPage() {
     if (canceled) toast.message("Checkout canceled. No charge.");
   }, [canceled]);
 
-  if (isPending) {
-    return (
-      <PageFrame eyebrow="Commerce" title="Coin shop">
-        <div className="h-48 animate-pulse rounded-lg bg-foreground/5" />
-      </PageFrame>
-    );
-  }
-  if (!user) return <RedirectToSignIn />;
-
-  async function pay(packId: (typeof COIN_PACKS)[number]["id"]) {
+  async function payPack(packId: (typeof COIN_PACKS)[number]["id"]) {
     if (!card) {
       toast.error("Card checkout is not connected yet.");
       return;
@@ -156,23 +152,33 @@ function ShopPage() {
           <div>
             <p className="font-mono text-xs tracking-widest text-accent uppercase">Desk ledger</p>
             <p className="mt-1 font-display text-5xl tabular-nums">
-              {ready ? formatInt(coins) : "—"}
+              {signedIn && ready ? formatInt(coins) : signedIn ? "—" : "0"}
             </p>
             <p className="mt-1 text-sm text-muted">
-              {!card
-                ? "Packs are listed. Card checkout turns on when Stripe is connected."
-                : !live
-                  ? "Stripe is still in test mode. No real money moves until a live secret key is installed."
-                  : webhook
-                    ? "Real card charges. Stripe confirms even if you close the tab, then coins queue for your claimed IGN."
-                    : "Real card charges. Return to this page after Stripe so we can credit the pack."}
+              {!signedIn
+                ? "Sign in to buy a pack. Coins queue for your claimed IGN and land in the live NLO economy."
+                : !card
+                  ? "Packs are listed. Card checkout turns on when Stripe is connected."
+                  : !live
+                    ? "Stripe is still in test mode. No real money moves until a live secret key is installed."
+                    : webhook
+                      ? "Real card charges. Stripe confirms even if you close the tab, then coins queue for your claimed IGN."
+                      : "Real card charges. Return to this page after Stripe so we can credit the pack."}
             </p>
           </div>
-          <Button variant="stone" asChild>
-            <Link to="/account">Manage account</Link>
-          </Button>
+          {signedIn ? (
+            <Button variant="stone" asChild>
+              <Link to="/account">Manage account</Link>
+            </Button>
+          ) : (
+            <Button asChild>
+              <Link to="/login">Sign in to buy</Link>
+            </Button>
+          )}
         </div>
-        <CoinDeliveryPanel desk={desk} ready={ready} plugin={plugin} />
+        {signedIn ? (
+          <CoinDeliveryPanel desk={desk} ready={ready} plugin={plugin} />
+        ) : null}
       </Panel>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -187,13 +193,22 @@ function ShopPage() {
             <p className="mt-3 text-sm text-muted">{pack.blurb}</p>
             <div className="mt-5 flex items-center justify-between gap-3">
               <span className="font-mono text-sm">${pack.usd}</span>
-              <Button
-                variant={pack.id === "chest" || pack.id === "netherite" ? "default" : "oak"}
-                disabled={busy !== null}
-                onClick={() => setConfirm(pack)}
-              >
-                Buy
-              </Button>
+              {signedIn ? (
+                <Button
+                  variant={pack.id === "chest" || pack.id === "netherite" ? "default" : "oak"}
+                  disabled={busy !== null}
+                  onClick={() => setConfirm(pack)}
+                >
+                  Buy
+                </Button>
+              ) : (
+                <Button
+                  variant={pack.id === "chest" || pack.id === "netherite" ? "default" : "oak"}
+                  asChild
+                >
+                  <Link to="/login">Sign in to buy</Link>
+                </Button>
+              )}
             </div>
           </Panel>
         ))}
@@ -201,8 +216,10 @@ function ShopPage() {
 
       <Panel className="mt-6">
         <h2 className="text-2xl">Receipts</h2>
-        {orders.length === 0 ? (
-          <p className="mt-3 text-sm text-muted">No paid packs yet.</p>
+        {!signedIn ? (
+          <p className="mt-3 text-sm text-muted">Sign in to see paid packs on this desk.</p>
+        ) : orders.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">{ready ? "No paid packs yet." : "Loading receipts…"}</p>
         ) : (
           <ul className="mt-4 grid gap-2">
             {orders.map((o) => (
@@ -235,8 +252,8 @@ function ShopPage() {
                 : "Stripe test mode — 4242 cards work, no real charge. After payment, coins still queue for your claimed IGN."}
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
-              <Button disabled={busy !== null} onClick={() => void pay(confirm.id)}>
-                {busy ? "Opening Stripe…" : card ? `Pay $${confirm.usd}` : "Checkout not connected"}
+              <Button disabled={busy !== null || !user} onClick={() => void payPack(confirm.id)}>
+                {busy ? "Opening Stripe…" : !user ? "Signing in…" : card ? `Pay $${confirm.usd}` : "Checkout not connected"}
               </Button>
               <Button variant="stone" disabled={busy !== null} onClick={() => setConfirm(null)}>
                 Cancel

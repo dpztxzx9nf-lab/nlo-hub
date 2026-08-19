@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { PageFrame, Panel } from "@/components/page-frame";
@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getBounties, postBounty, type BountyRow } from "@/lib/nlo/server";
 import { formatInt } from "@/lib/utils";
+
+const siteRoute = getRouteApi("/_site");
 
 export const Route = createFileRoute("/_site/bounties")({
   loader: () => getBounties(),
@@ -68,14 +70,14 @@ function BountiesPage() {
 }
 
 function PostForm({ onPosted }: { onPosted: (row: BountyRow | undefined) => void }) {
+  const { session } = siteRoute.useLoaderData();
   const { user, isPending } = useCurrentUserState();
   const [target, setTarget] = useState("");
   const [reward, setReward] = useState("2500");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
 
-  if (isPending) return <div className="h-40 animate-pulse rounded-lg bg-foreground/5" />;
-  if (!user) {
+  if (!user && !session) {
     return (
       <Panel>
         <p className="text-muted">Sign in and claim your IGN to post a funded bounty.</p>
@@ -85,6 +87,7 @@ function PostForm({ onPosted }: { onPosted: (row: BountyRow | undefined) => void
       </Panel>
     );
   }
+  if (isPending || !user) return <div className="h-40 animate-pulse rounded-lg bg-foreground/5" />;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

@@ -6,15 +6,23 @@ import { CopyIp } from "@/components/copy-ip";
 import { HeaderLive } from "@/components/status-live";
 import { Button } from "@/components/ui/button";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates";
+import { UserButton } from "@/lib/auth/gates";
 import { NAV, SERVER } from "@/lib/nlo/content";
 import type { LiveStatus } from "@/lib/nlo/server";
 import { cn } from "@/lib/utils";
 
-export function SiteShell({ status }: { status?: LiveStatus }) {
+export type SiteSession = { id: string; email: string | null } | null;
+
+export function SiteShell({
+  status,
+  session,
+}: {
+  status?: LiveStatus;
+  session?: SiteSession;
+}) {
   return (
     <div className="flex min-h-dvh flex-col">
-      <Header status={status} />
+      <Header status={status} session={session ?? null} />
       <main id="main" className="flex-1">
         <Outlet />
       </main>
@@ -30,7 +38,7 @@ export function SiteShell({ status }: { status?: LiveStatus }) {
   );
 }
 
-function Header({ status }: { status?: LiveStatus }) {
+function Header({ status, session }: { status?: LiveStatus; session: SiteSession }) {
   const [open, setOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
@@ -75,7 +83,7 @@ function Header({ status }: { status?: LiveStatus }) {
             <HeaderLive status={status} />
             <div className="hidden items-center gap-2 md:flex">
               <CopyIp variant="oak" size="sm" />
-              <AuthSlot />
+              <AuthSlot session={session} />
             </div>
             <button
               type="button"
@@ -107,7 +115,7 @@ function Header({ status }: { status?: LiveStatus }) {
               ))}
             </nav>
             <div className="mt-4 flex flex-wrap items-center gap-2">
-              <AuthSlot />
+              <AuthSlot session={session} />
             </div>
           </div>
         ) : null}
@@ -116,29 +124,29 @@ function Header({ status }: { status?: LiveStatus }) {
   );
 }
 
-function AuthSlot() {
-  const { user, isPending } = useCurrentUserState();
-  if (isPending) {
-    return <div className="h-11 w-24 animate-pulse rounded-sm bg-foreground/10" />;
-  }
+function AuthSlot({ session }: { session: SiteSession }) {
+  const { user } = useCurrentUserState();
   if (user) {
     return (
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" asChild>
           <Link to="/account">Desk</Link>
         </Button>
-        <SignedIn>
-          <UserButton />
-        </SignedIn>
+        <UserButton />
       </div>
     );
   }
-  return (
-    <SignedOut>
-      <Button variant="stone" size="sm" asChild>
-        <Link to="/login">Sign in</Link>
+  if (session) {
+    return (
+      <Button variant="ghost" size="sm" asChild>
+        <Link to="/account">Desk</Link>
       </Button>
-    </SignedOut>
+    );
+  }
+  return (
+    <Button variant="stone" size="sm" asChild>
+      <Link to="/login">Sign in</Link>
+    </Button>
   );
 }
 

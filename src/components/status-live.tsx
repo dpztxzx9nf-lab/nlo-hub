@@ -113,10 +113,12 @@ const EMPTY_STATUS: LiveStatus = {
 
 export function useLiveWorld(initial?: LiveStatus): LiveWorld {
   const [world, setWorld] = useState<LiveWorld>(() => {
-    if (latest) return latest;
+    // `latest` is a client-only poller cache. Reading it during SSR reuses a
+    // previous request's count and hydrates as 4/16 vs 3/16.
+    if (typeof window !== "undefined" && latest) return latest;
     if (initial?.checked) {
       const seeded: LiveWorld = { status: initial, online: [], at: 0 };
-      latest = seeded;
+      if (typeof window !== "undefined") latest = seeded;
       return seeded;
     }
     return {
