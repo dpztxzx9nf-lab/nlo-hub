@@ -4,7 +4,7 @@ import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { readOrders, readWallet } from "@/lib/nlo/wallet";
 import { COIN_PACKS } from "@/lib/nlo/content";
-import { createCoinCheckout, fulfillStripeSession, stripeConfigured } from "@/lib/nlo/stripe";
+import { createCoinCheckout, fulfillStripeSession, stripeConfigured, stripeLive } from "@/lib/nlo/stripe";
 import { getWorldSnapshot, type SeenPlayer } from "@/lib/nlo/live";
 import { bindPendingGrants, claimIgnAvailable, readGrantDesk } from "@/lib/nlo/grants";
 import { isValidIgn, type GrantDesk } from "@/lib/nlo/grant-shared";
@@ -190,7 +190,7 @@ export const getOrders = createServerFn({ method: "GET" })
   });
 
 export const getPayStatus = createServerFn({ method: "GET" }).handler(async () => {
-  return { card: stripeConfigured() };
+  return { card: stripeConfigured(), live: stripeLive() };
 });
 
 export const startCheckout = createServerFn({ method: "POST" })

@@ -37,6 +37,7 @@ function ShopPage() {
     grants: [],
   });
   const [card, setCard] = useState(false);
+  const [live, setLive] = useState(false);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<(typeof COIN_PACKS)[number] | null>(null);
@@ -61,6 +62,7 @@ function ShopPage() {
         setOrders(o);
         setDesk(grants);
         setCard(pay.card);
+        setLive(Boolean(pay.live));
         setReady(true);
       })
       .catch(() => {
@@ -153,9 +155,11 @@ function ShopPage() {
               {ready ? formatInt(coins) : "—"}
             </p>
             <p className="mt-1 text-sm text-muted">
-              {card
-                ? "Card checkout is live. Stripe handles the card — we never see the number."
-                : "Packs are listed. Card checkout turns on when Stripe is connected."}
+              {!card
+                ? "Packs are listed. Card checkout turns on when Stripe is connected."
+                : live
+                  ? "Real card charges. Stripe takes the payment — we never see the number. Coins then queue for your claimed IGN."
+                  : "Stripe is still in test mode. No real money moves until a live secret key is installed."}
             </p>
           </div>
           <Button variant="stone" asChild>
@@ -219,9 +223,10 @@ function ShopPage() {
             <p className="font-mono text-xs tracking-widest text-accent uppercase">Card checkout</p>
             <h2 className="mt-2 text-3xl">{confirm.name}</h2>
             <p className="mt-3 text-sm text-muted">
-              {formatInt(confirm.coins)} coins for ${confirm.usd}. Stripe takes the card. After
-              payment they queue for your claimed IGN and spend in the NLO shop, AH, plots, and
-              bounties.
+              {formatInt(confirm.coins)} coins for ${confirm.usd}.{" "}
+              {live
+                ? "This is a real charge. After it succeeds, coins queue for your claimed IGN."
+                : "Stripe test mode — 4242 cards work, no real charge. After payment, coins still queue for your claimed IGN."}
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               <Button disabled={busy !== null} onClick={() => void pay(confirm.id)}>

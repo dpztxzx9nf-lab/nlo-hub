@@ -9,6 +9,10 @@ export function stripeConfigured() {
   return Boolean(secret());
 }
 
+export function stripeLive() {
+  return secret().startsWith("sk_live_");
+}
+
 async function stripePost(path: string, body: Record<string, string>) {
   const key = secret();
   if (!key) throw new Error("Card checkout is not connected.");
