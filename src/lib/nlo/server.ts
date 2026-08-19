@@ -6,7 +6,7 @@ import { readOrders, readWallet } from "@/lib/nlo/wallet";
 import { COIN_PACKS } from "@/lib/nlo/content";
 import { createCoinCheckout, fulfillStripeSession, stripeConfigured, stripeLive, webhookConfigured } from "@/lib/nlo/stripe";
 import { getWorldSnapshot, type SeenPlayer } from "@/lib/nlo/live";
-import { bindPendingGrants, claimIgnAvailable, readGrantDesk } from "@/lib/nlo/grants";
+import { bindPendingGrants, claimIgnAvailable, pluginSeen, readGrantDesk } from "@/lib/nlo/grants";
 import { isValidIgn, type GrantDesk } from "@/lib/nlo/grant-shared";
 
 export type { LiveStatus, SeenPlayer, WorldSnapshot } from "@/lib/nlo/live";
@@ -190,7 +190,12 @@ export const getOrders = createServerFn({ method: "GET" })
   });
 
 export const getPayStatus = createServerFn({ method: "GET" }).handler(async () => {
-  return { card: stripeConfigured(), live: stripeLive(), webhook: webhookConfigured() };
+  return {
+    card: stripeConfigured(),
+    live: stripeLive(),
+    webhook: webhookConfigured(),
+    plugin: pluginSeen(),
+  };
 });
 
 export const startCheckout = createServerFn({ method: "POST" })

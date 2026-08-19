@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { grokOAuthMode } from "@/lib/auth/server";
-import { internalSecret } from "@/lib/nlo/grants";
+import { internalSecret, pluginSeen } from "@/lib/nlo/grants";
 import { stripeConfigured, stripeLive, webhookConfigured } from "@/lib/nlo/stripe";
 
 export const Route = createFileRoute("/api/shop/status")({
@@ -14,6 +14,7 @@ export const Route = createFileRoute("/api/shop/status")({
             webhook: webhookConfigured(),
             oauth: grokOAuthMode,
             grants: Boolean(internalSecret()),
+            plugin: pluginSeen(),
           },
           { headers: { "Cache-Control": "no-store, no-cache, must-revalidate" } },
         );

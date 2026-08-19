@@ -44,6 +44,19 @@ export function internalSecret(): string {
   return process.env.NLO_INTERNAL_SECRET?.trim() || "";
 }
 
+const pluginSeenRef = globalThis as typeof globalThis & { __nloPluginSeenAt__?: number };
+const PLUGIN_SEEN_MS = 45_000;
+
+/** Call after a successful NLOCoins poll so shop status can show the Paper box is live. */
+export function notePluginPoll() {
+  pluginSeenRef.__nloPluginSeenAt__ = Date.now();
+}
+
+export function pluginSeen(now = Date.now()) {
+  const at = pluginSeenRef.__nloPluginSeenAt__;
+  return Boolean(at && now - at < PLUGIN_SEEN_MS);
+}
+
 export function safeEqual(a: string, b: string): boolean {
   const left = Buffer.from(a);
   const right = Buffer.from(b);

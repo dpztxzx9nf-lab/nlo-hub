@@ -39,6 +39,7 @@ function ShopPage() {
   const [card, setCard] = useState(false);
   const [live, setLive] = useState(false);
   const [webhook, setWebhook] = useState(false);
+  const [plugin, setPlugin] = useState(false);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<(typeof COIN_PACKS)[number] | null>(null);
@@ -65,6 +66,7 @@ function ShopPage() {
         setCard(pay.card);
         setLive(Boolean(pay.live));
         setWebhook(Boolean(pay.webhook));
+        setPlugin(Boolean(pay.plugin));
         setReady(true);
       })
       .catch(() => {
@@ -170,7 +172,7 @@ function ShopPage() {
             <Link to="/account">Manage account</Link>
           </Button>
         </div>
-        <CoinDeliveryPanel desk={desk} ready={ready} />
+        <CoinDeliveryPanel desk={desk} ready={ready} plugin={plugin} />
       </Panel>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

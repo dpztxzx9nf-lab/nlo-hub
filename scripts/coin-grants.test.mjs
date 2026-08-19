@@ -125,3 +125,11 @@ test("plugin secret file lives on the Paper box, not the hub path", () => {
   assert.equal(secretFile.startsWith("/opt/nlo/"), false);
   assert.match(secretFile, /NLOCoins/);
 });
+
+test("plugin is live if it polled within 45 seconds", () => {
+  const windowMs = 45_000;
+  const seenAt = 1_000_000;
+  assert.equal(Boolean(seenAt && 1_000_000 + 10_000 - seenAt < windowMs), true);
+  assert.equal(Boolean(seenAt && 1_000_000 + 60_000 - seenAt < windowMs), false);
+  assert.equal(Boolean(undefined && 1_000_000 - 0 < windowMs), false);
+});

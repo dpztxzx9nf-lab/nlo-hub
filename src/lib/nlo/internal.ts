@@ -3,6 +3,7 @@ import {
   claimGrantForDelivery,
   listDeliverableGrants,
   markGrantDelivered,
+  notePluginPoll,
   releaseGrant,
   unauthorizedInternal,
 } from "@/lib/nlo/grants";
@@ -23,6 +24,7 @@ function jsonGrant(grant: Awaited<ReturnType<typeof markGrantDelivered>>) {
 
 export async function handlePendingGrants(request: Request): Promise<Response> {
   if (!authorizeInternal(request)) return unauthorizedInternal();
+  notePluginPoll();
   const grants = await listDeliverableGrants();
   return Response.json(
     {

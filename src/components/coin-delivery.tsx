@@ -6,20 +6,23 @@ import { formatInt } from "@/lib/utils";
 export function CoinDeliveryPanel({
   desk,
   ready,
+  plugin,
 }: {
   desk: GrantDesk;
   ready: boolean;
+  plugin?: boolean;
 }) {
   const ign = desk.claimedIgn;
   const waiting = !ign && desk.pendingCount > 0;
   const queued = Boolean(ign) && desk.pendingCount > 0;
+  const boxDown = queued && plugin === false;
   return (
     <div className="mt-4 rounded-sm bg-background/35 px-3 py-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="font-mono text-xs tracking-widest text-accent uppercase">In-game delivery</p>
         {ready ? (
           <Badge variant={queued ? "gold" : waiting ? "wanted" : "oak"}>
-            {waiting ? "Needs IGN" : queued ? "Pending" : desk.deliveredCoins > 0 ? "Delivered" : "Ready"}
+            {waiting ? "Needs IGN" : boxDown ? "Queued" : queued ? "Pending" : desk.deliveredCoins > 0 ? "Delivered" : "Ready"}
           </Badge>
         ) : null}
       </div>
@@ -32,6 +35,12 @@ export function CoinDeliveryPanel({
             Claim your Minecraft IGN
           </Link>{" "}
           so coins can be delivered in-game.
+        </p>
+      ) : boxDown ? (
+        <p className="mt-2 text-sm text-muted">
+          {formatInt(desk.pendingCoins)} coins are queued for{" "}
+          <span className="text-foreground">{ign}</span>. The live Paper box is not pulling
+          grants yet — they land once NLOCoins is running on that box.
         </p>
       ) : queued ? (
         <p className="mt-2 text-sm text-muted">

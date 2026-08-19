@@ -20,17 +20,17 @@ function LoginPage() {
     const err = q.get("error");
     if (!err || err === "undefined") return;
     if (err === "access_denied") {
-      toast.error("Sign-in was canceled or blocked. Try email if X or Google bounce you.");
+      toast.error("Sign-in was canceled. Try again, or use email.");
       return;
     }
-    toast.error("X and Google need a production Grok auth client on this desk. Use email for now.");
+    toast.error("That sign-in did not finish. Try the other button, or use email.");
   }, []);
 
   return (
     <PageFrame
       eyebrow="Gate"
       title={mode === "in" ? "Sign in" : "Create account"}
-      lead="Google, X, or email. If X or Google bounce you back, use email — same desk. Passwords are hashed. Use 12+ characters with a letter and a number."
+      lead="Google, X, or email — same desk. Passwords are hashed. Use 12+ characters with a letter and a number."
     >
       <Panel texture="oak" className="mx-auto max-w-md">
         {authEnabled ? (
