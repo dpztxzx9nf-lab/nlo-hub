@@ -91,6 +91,7 @@ export async function ensureGrantTables() {
     on nlo_coin_grants (user_id, created_at desc)
   `);
   try {
+    await sql.query(`alter table nlo_orders add column if not exists stripe_session_id text`);
     await sql.query(`
       insert into nlo_coin_grants (user_id, ign, coins, stripe_session_id, status)
       select o.user_id, c.ign, o.coins, o.stripe_session_id, 'pending'
