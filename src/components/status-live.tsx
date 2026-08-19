@@ -191,7 +191,7 @@ export function HeaderLive() {
   const live = useLiveStatus();
   if (!live.checked) {
     return (
-      <span className="hidden font-mono text-xs tracking-wide text-muted uppercase lg:inline">
+      <span className="inline font-mono text-xs tracking-wide text-muted uppercase">
         Checking…
       </span>
     );
@@ -200,7 +200,7 @@ export function HeaderLive() {
     <Link
       to="/roster"
       className={cn(
-        "hidden items-center gap-1.5 rounded-sm px-2 py-1 font-mono text-xs tracking-wide uppercase lg:inline-flex",
+        "inline-flex items-center gap-1.5 rounded-sm px-2 py-1 font-mono text-xs tracking-wide uppercase",
         live.online ? "text-accent" : "text-muted",
       )}
     >
