@@ -1,0 +1,10 @@
+{
+  "name": "nlo-hub",
+  "install": "npm install --no-fund --no-audit",
+  "terminals": [
+    {
+      "name": "dev",
+      "command": "npm run dev"
+    }
+  ]
+}
