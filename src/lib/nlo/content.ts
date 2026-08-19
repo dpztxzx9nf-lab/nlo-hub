@@ -34,7 +34,7 @@ export const FEATURES = [
   },
   {
     title: "Player economy",
-    body: "Sell resources, pay players, use the shop, and list goods in the Auction House. Coins come from time in the world — not a cash shop.",
+    body: "Sell resources, pay players, spend desk packs, and list goods in the Auction House. Play earns coins; the shop tops up the same ledger — never a pay-to-win kit.",
     href: "/world",
     image: "/spawn-plaza.jpg",
   },

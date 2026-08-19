@@ -25,6 +25,7 @@ import { Route as SiteWorldRouteImport } from './routes/_site/world'
 import { Route as ApiLiveRouteImport } from './routes/api/live'
 import { Route as SiteRosterIgnRouteImport } from './routes/_site/roster.$ign'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiShopStatusRouteImport } from './routes/api/shop/status'
 import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
 import { Route as ApiInternalCoinGrantsPendingRouteImport } from './routes/api/internal/coin-grants/pending'
 import { Route as ApiInternalCoinGrantsIdClaimRouteImport } from './routes/api/internal/coin-grants/$id.claim'
@@ -110,31 +111,40 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiShopStatusRoute = ApiShopStatusRouteImport.update({
+  id: '/api/shop/status',
+  path: '/api/shop/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
   id: '/api/stripe/webhook',
   path: '/api/stripe/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiInternalCoinGrantsPendingRoute = ApiInternalCoinGrantsPendingRouteImport.update({
-  id: '/api/internal/coin-grants/pending',
-  path: '/api/internal/coin-grants/pending',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiInternalCoinGrantsIdClaimRoute = ApiInternalCoinGrantsIdClaimRouteImport.update({
-  id: '/api/internal/coin-grants/$id/claim',
-  path: '/api/internal/coin-grants/$id/claim',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiInternalCoinGrantsIdDeliveredRoute = ApiInternalCoinGrantsIdDeliveredRouteImport.update({
-  id: '/api/internal/coin-grants/$id/delivered',
-  path: '/api/internal/coin-grants/$id/delivered',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiInternalCoinGrantsIdReleaseRoute = ApiInternalCoinGrantsIdReleaseRouteImport.update({
-  id: '/api/internal/coin-grants/$id/release',
-  path: '/api/internal/coin-grants/$id/release',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const ApiInternalCoinGrantsPendingRoute =
+  ApiInternalCoinGrantsPendingRouteImport.update({
+    id: '/api/internal/coin-grants/pending',
+    path: '/api/internal/coin-grants/pending',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiInternalCoinGrantsIdClaimRoute =
+  ApiInternalCoinGrantsIdClaimRouteImport.update({
+    id: '/api/internal/coin-grants/$id/claim',
+    path: '/api/internal/coin-grants/$id/claim',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiInternalCoinGrantsIdDeliveredRoute =
+  ApiInternalCoinGrantsIdDeliveredRouteImport.update({
+    id: '/api/internal/coin-grants/$id/delivered',
+    path: '/api/internal/coin-grants/$id/delivered',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiInternalCoinGrantsIdReleaseRoute =
+  ApiInternalCoinGrantsIdReleaseRouteImport.update({
+    id: '/api/internal/coin-grants/$id/release',
+    path: '/api/internal/coin-grants/$id/release',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof SiteIndexRoute
@@ -152,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/api/live': typeof ApiLiveRoute
   '/roster/$ign': typeof SiteRosterIgnRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/shop/status': typeof ApiShopStatusRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/api/internal/coin-grants/pending': typeof ApiInternalCoinGrantsPendingRoute
   '/api/internal/coin-grants/$id/claim': typeof ApiInternalCoinGrantsIdClaimRoute
@@ -174,6 +185,7 @@ export interface FileRoutesByTo {
   '/': typeof SiteIndexRoute
   '/roster/$ign': typeof SiteRosterIgnRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/shop/status': typeof ApiShopStatusRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/api/internal/coin-grants/pending': typeof ApiInternalCoinGrantsPendingRoute
   '/api/internal/coin-grants/$id/claim': typeof ApiInternalCoinGrantsIdClaimRoute
@@ -198,6 +210,7 @@ export interface FileRoutesById {
   '/_site/': typeof SiteIndexRoute
   '/_site/roster/$ign': typeof SiteRosterIgnRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/shop/status': typeof ApiShopStatusRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/api/internal/coin-grants/pending': typeof ApiInternalCoinGrantsPendingRoute
   '/api/internal/coin-grants/$id/claim': typeof ApiInternalCoinGrantsIdClaimRoute
@@ -222,6 +235,7 @@ export interface FileRouteTypes {
     | '/api/live'
     | '/roster/$ign'
     | '/api/auth/$'
+    | '/api/shop/status'
     | '/api/stripe/webhook'
     | '/api/internal/coin-grants/pending'
     | '/api/internal/coin-grants/$id/claim'
@@ -244,6 +258,7 @@ export interface FileRouteTypes {
     | '/'
     | '/roster/$ign'
     | '/api/auth/$'
+    | '/api/shop/status'
     | '/api/stripe/webhook'
     | '/api/internal/coin-grants/pending'
     | '/api/internal/coin-grants/$id/claim'
@@ -267,6 +282,7 @@ export interface FileRouteTypes {
     | '/_site/'
     | '/_site/roster/$ign'
     | '/api/auth/$'
+    | '/api/shop/status'
     | '/api/stripe/webhook'
     | '/api/internal/coin-grants/pending'
     | '/api/internal/coin-grants/$id/claim'
@@ -278,6 +294,7 @@ export interface RootRouteChildren {
   SiteRoute: typeof SiteRouteWithChildren
   ApiLiveRoute: typeof ApiLiveRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiShopStatusRoute: typeof ApiShopStatusRoute
   ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
   ApiInternalCoinGrantsPendingRoute: typeof ApiInternalCoinGrantsPendingRoute
   ApiInternalCoinGrantsIdClaimRoute: typeof ApiInternalCoinGrantsIdClaimRoute
@@ -399,6 +416,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/shop/status': {
+      id: '/api/shop/status'
+      path: '/api/shop/status'
+      fullPath: '/api/shop/status'
+      preLoaderRoute: typeof ApiShopStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/stripe/webhook': {
       id: '/api/stripe/webhook'
       path: '/api/stripe/webhook'
@@ -485,6 +509,7 @@ const rootRouteChildren: RootRouteChildren = {
   SiteRoute: SiteRouteWithChildren,
   ApiLiveRoute: ApiLiveRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiShopStatusRoute: ApiShopStatusRoute,
   ApiStripeWebhookRoute: ApiStripeWebhookRoute,
   ApiInternalCoinGrantsPendingRoute: ApiInternalCoinGrantsPendingRoute,
   ApiInternalCoinGrantsIdClaimRoute: ApiInternalCoinGrantsIdClaimRoute,

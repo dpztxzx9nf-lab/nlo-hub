@@ -112,11 +112,19 @@ const EMPTY_STATUS: LiveStatus = {
 };
 
 export function useLiveWorld(initial?: LiveStatus): LiveWorld {
-  const [world, setWorld] = useState<LiveWorld>(() => ({
-    status: initial ?? EMPTY_STATUS,
-    online: [],
-    at: 0,
-  }));
+  const [world, setWorld] = useState<LiveWorld>(() => {
+    if (latest) return latest;
+    if (initial?.checked) {
+      const seeded: LiveWorld = { status: initial, online: [], at: 0 };
+      latest = seeded;
+      return seeded;
+    }
+    return {
+      status: initial ?? EMPTY_STATUS,
+      online: [],
+      at: 0,
+    };
+  });
 
   useEffect(() => {
     if (latest) setWorld(latest);
@@ -187,11 +195,11 @@ export function LiveCount({ status }: { status: LiveStatus }) {
   return <span className={cn(flash && "nlo-count-flash")}>{live.players}/{live.max}</span>;
 }
 
-export function HeaderLive() {
-  const live = useLiveStatus();
+export function HeaderLive({ status }: { status?: LiveStatus } = {}) {
+  const live = useLiveStatus(status);
   if (!live.checked) {
     return (
-      <span className="hidden font-mono text-xs tracking-wide text-muted uppercase lg:inline">
+      <span className="inline font-mono text-xs tracking-wide text-muted uppercase">
         Checking…
       </span>
     );
@@ -200,7 +208,7 @@ export function HeaderLive() {
     <Link
       to="/roster"
       className={cn(
-        "hidden items-center gap-1.5 rounded-sm px-2 py-1 font-mono text-xs tracking-wide uppercase lg:inline-flex",
+        "inline-flex items-center gap-1.5 rounded-sm px-2 py-1 font-mono text-xs tracking-wide uppercase",
         live.online ? "text-accent" : "text-muted",
       )}
     >

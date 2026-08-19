@@ -8,12 +8,13 @@ import { Button } from "@/components/ui/button";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates";
 import { NAV, SERVER } from "@/lib/nlo/content";
+import type { LiveStatus } from "@/lib/nlo/server";
 import { cn } from "@/lib/utils";
 
-export function SiteShell() {
+export function SiteShell({ status }: { status?: LiveStatus }) {
   return (
     <div className="flex min-h-dvh flex-col">
-      <Header />
+      <Header status={status} />
       <main id="main" className="flex-1">
         <Outlet />
       </main>
@@ -29,7 +30,7 @@ export function SiteShell() {
   );
 }
 
-function Header() {
+function Header({ status }: { status?: LiveStatus }) {
   const [open, setOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
@@ -71,7 +72,7 @@ function Header() {
           </nav>
 
           <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
-            <HeaderLive />
+            <HeaderLive status={status} />
             <div className="hidden items-center gap-2 md:flex">
               <CopyIp variant="oak" size="sm" />
               <AuthSlot />
@@ -90,7 +91,7 @@ function Header() {
         {open ? (
           <div className="border-t border-line px-4 py-4 lg:hidden">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <HeaderLive />
+              <HeaderLive status={status} />
               <CopyIp variant="default" />
             </div>
             <nav className="grid gap-1">

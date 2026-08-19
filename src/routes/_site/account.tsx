@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { CoinDeliveryPanel } from "@/components/coin-delivery";
-import { getClaim, getGrantDesk, getWallet, getWatch, saveClaim, type GrantDesk } from "@/lib/nlo/server";
+import { getClaim, getGrantDesk, getPayStatus, getWallet, getWatch, saveClaim, type GrantDesk } from "@/lib/nlo/server";
 import { authClient } from "@/lib/auth/client";
 import { PASSWORD_MIN, passwordIssues } from "@/lib/auth/password";
 import { formatInt } from "@/lib/utils";
@@ -32,18 +32,20 @@ function AccountPage() {
   });
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [plugin, setPlugin] = useState(false);
 
   useEffect(() => {
     if (isPending || !user) return;
     let cancelled = false;
-    void Promise.all([getClaim(), getWatch(), getWallet(), getGrantDesk()])
-      .then(([c, w, wallet, grants]) => {
+    void Promise.all([getClaim(), getWatch(), getWallet(), getGrantDesk(), getPayStatus()])
+      .then(([c, w, wallet, grants, pay]) => {
         if (cancelled) return;
         setClaimed(c);
         setIgn(c ?? "");
         setWatch(w.map((row) => row.ign));
         setCoins(wallet.coins);
         setDesk(grants);
+        setPlugin(Boolean(pay.plugin));
         setReady(true);
       })
       .catch(() => {
@@ -107,7 +109,7 @@ function AccountPage() {
             <Link to="/shop">Buy coins</Link>
           </Button>
         </div>
-        <CoinDeliveryPanel desk={{ ...desk, claimedIgn: claimed }} ready={ready} />
+        <CoinDeliveryPanel desk={{ ...desk, claimedIgn: claimed }} ready={ready} plugin={plugin} />
       </Panel>
 
       <div className="grid gap-4 lg:grid-cols-2">
