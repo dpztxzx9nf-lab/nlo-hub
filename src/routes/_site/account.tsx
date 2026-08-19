@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { getClaim, getWallet, getWatch, saveClaim } from "@/lib/nlo/server";
+import { CoinDeliveryPanel } from "@/components/coin-delivery";
+import { getClaim, getGrantDesk, getWallet, getWatch, saveClaim, type GrantDesk } from "@/lib/nlo/server";
 import { authClient } from "@/lib/auth/client";
 import { PASSWORD_MIN, passwordIssues } from "@/lib/auth/password";
 import { formatInt } from "@/lib/utils";
@@ -22,19 +23,27 @@ function AccountPage() {
   const [claimed, setClaimed] = useState<string | null>(null);
   const [watch, setWatch] = useState<string[]>([]);
   const [coins, setCoins] = useState(0);
+  const [desk, setDesk] = useState<GrantDesk>({
+    claimedIgn: null,
+    pendingCoins: 0,
+    pendingCount: 0,
+    deliveredCoins: 0,
+    grants: [],
+  });
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (isPending || !user) return;
     let cancelled = false;
-    void Promise.all([getClaim(), getWatch(), getWallet()])
-      .then(([c, w, wallet]) => {
+    void Promise.all([getClaim(), getWatch(), getWallet(), getGrantDesk()])
+      .then(([c, w, wallet, grants]) => {
         if (cancelled) return;
         setClaimed(c);
         setIgn(c ?? "");
         setWatch(w.map((row) => row.ign));
         setCoins(wallet.coins);
+        setDesk(grants);
         setReady(true);
       })
       .catch(() => {
@@ -60,7 +69,18 @@ function AccountPage() {
     try {
       const next = await saveClaim({ data: ign });
       setClaimed(next);
-      toast.success(`Claimed ${next}`);
+      setDesk((prev) => ({
+        ...prev,
+        claimedIgn: next,
+        grants: prev.grants.map((g) =>
+          g.status === "pending" || g.status === "delivering" ? { ...g, ign: next } : g,
+        ),
+      }));
+      toast.success(
+        desk.pendingCount > 0
+          ? `Claimed ${next}. ${desk.pendingCoins.toLocaleString()} coins will deliver in-game.`
+          : `Claimed ${next}`,
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not claim that name");
     } finally {
@@ -72,7 +92,7 @@ function AccountPage() {
     <PageFrame
       eyebrow="Desk"
       title={user.displayName ?? "Player desk"}
-      lead="Claim the IGN you play under, watch names, and keep your NLO coin balance. Shop packs land here."
+      lead="Claim the IGN you play under. Shop coins queue for that name and deposit into the live NLO economy."
     >
       <Panel texture="oak" className="mb-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
@@ -81,12 +101,13 @@ function AccountPage() {
             <p className="mt-1 font-display text-5xl tabular-nums">
               {ready ? formatInt(coins) : "—"}
             </p>
-            <p className="mt-1 text-sm text-muted">Spends in NLO shops, AH, plots, and bounties.</p>
+            <p className="mt-1 text-sm text-muted">Desk ledger. Gameplay spending uses the in-game balance.</p>
           </div>
           <Button asChild>
             <Link to="/shop">Buy coins</Link>
           </Button>
         </div>
+        <CoinDeliveryPanel desk={{ ...desk, claimedIgn: claimed }} ready={ready} />
       </Panel>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -107,10 +128,14 @@ function AccountPage() {
             <div className="mt-4 flex items-center gap-3">
               <PlayerFace ign={claimed} size={40} />
               <p className="text-sm text-muted">
-                Posting and watches use <span className="text-foreground">{claimed}</span>
+                Shop coins and watches use <span className="text-foreground">{claimed}</span>
               </p>
             </div>
-          ) : null}
+          ) : (
+            <p className="mt-3 text-sm text-muted">
+              Claim your Minecraft IGN so coins can be delivered in-game.
+            </p>
+          )}
         </Panel>
         <Panel>
           <h2 className="text-2xl">Watchlist</h2>

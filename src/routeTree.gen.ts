@@ -25,6 +25,11 @@ import { Route as SiteWorldRouteImport } from './routes/_site/world'
 import { Route as ApiLiveRouteImport } from './routes/api/live'
 import { Route as SiteRosterIgnRouteImport } from './routes/_site/roster.$ign'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
+import { Route as ApiInternalCoinGrantsPendingRouteImport } from './routes/api/internal/coin-grants/pending'
+import { Route as ApiInternalCoinGrantsIdClaimRouteImport } from './routes/api/internal/coin-grants/$id.claim'
+import { Route as ApiInternalCoinGrantsIdDeliveredRouteImport } from './routes/api/internal/coin-grants/$id.delivered'
+import { Route as ApiInternalCoinGrantsIdReleaseRouteImport } from './routes/api/internal/coin-grants/$id.release'
 
 const SiteRoute = SiteRouteImport.update({
   id: '/_site',
@@ -105,6 +110,31 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
+  id: '/api/stripe/webhook',
+  path: '/api/stripe/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInternalCoinGrantsPendingRoute = ApiInternalCoinGrantsPendingRouteImport.update({
+  id: '/api/internal/coin-grants/pending',
+  path: '/api/internal/coin-grants/pending',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInternalCoinGrantsIdClaimRoute = ApiInternalCoinGrantsIdClaimRouteImport.update({
+  id: '/api/internal/coin-grants/$id/claim',
+  path: '/api/internal/coin-grants/$id/claim',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInternalCoinGrantsIdDeliveredRoute = ApiInternalCoinGrantsIdDeliveredRouteImport.update({
+  id: '/api/internal/coin-grants/$id/delivered',
+  path: '/api/internal/coin-grants/$id/delivered',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInternalCoinGrantsIdReleaseRoute = ApiInternalCoinGrantsIdReleaseRouteImport.update({
+  id: '/api/internal/coin-grants/$id/release',
+  path: '/api/internal/coin-grants/$id/release',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof SiteIndexRoute
@@ -122,6 +152,11 @@ export interface FileRoutesByFullPath {
   '/api/live': typeof ApiLiveRoute
   '/roster/$ign': typeof SiteRosterIgnRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
+  '/api/internal/coin-grants/pending': typeof ApiInternalCoinGrantsPendingRoute
+  '/api/internal/coin-grants/$id/claim': typeof ApiInternalCoinGrantsIdClaimRoute
+  '/api/internal/coin-grants/$id/delivered': typeof ApiInternalCoinGrantsIdDeliveredRoute
+  '/api/internal/coin-grants/$id/release': typeof ApiInternalCoinGrantsIdReleaseRoute
 }
 export interface FileRoutesByTo {
   '/account': typeof SiteAccountRoute
@@ -139,6 +174,11 @@ export interface FileRoutesByTo {
   '/': typeof SiteIndexRoute
   '/roster/$ign': typeof SiteRosterIgnRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
+  '/api/internal/coin-grants/pending': typeof ApiInternalCoinGrantsPendingRoute
+  '/api/internal/coin-grants/$id/claim': typeof ApiInternalCoinGrantsIdClaimRoute
+  '/api/internal/coin-grants/$id/delivered': typeof ApiInternalCoinGrantsIdDeliveredRoute
+  '/api/internal/coin-grants/$id/release': typeof ApiInternalCoinGrantsIdReleaseRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -158,6 +198,11 @@ export interface FileRoutesById {
   '/_site/': typeof SiteIndexRoute
   '/_site/roster/$ign': typeof SiteRosterIgnRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
+  '/api/internal/coin-grants/pending': typeof ApiInternalCoinGrantsPendingRoute
+  '/api/internal/coin-grants/$id/claim': typeof ApiInternalCoinGrantsIdClaimRoute
+  '/api/internal/coin-grants/$id/delivered': typeof ApiInternalCoinGrantsIdDeliveredRoute
+  '/api/internal/coin-grants/$id/release': typeof ApiInternalCoinGrantsIdReleaseRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -177,6 +222,11 @@ export interface FileRouteTypes {
     | '/api/live'
     | '/roster/$ign'
     | '/api/auth/$'
+    | '/api/stripe/webhook'
+    | '/api/internal/coin-grants/pending'
+    | '/api/internal/coin-grants/$id/claim'
+    | '/api/internal/coin-grants/$id/delivered'
+    | '/api/internal/coin-grants/$id/release'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/account'
@@ -194,6 +244,11 @@ export interface FileRouteTypes {
     | '/'
     | '/roster/$ign'
     | '/api/auth/$'
+    | '/api/stripe/webhook'
+    | '/api/internal/coin-grants/pending'
+    | '/api/internal/coin-grants/$id/claim'
+    | '/api/internal/coin-grants/$id/delivered'
+    | '/api/internal/coin-grants/$id/release'
   id:
     | '__root__'
     | '/_site'
@@ -212,12 +267,22 @@ export interface FileRouteTypes {
     | '/_site/'
     | '/_site/roster/$ign'
     | '/api/auth/$'
+    | '/api/stripe/webhook'
+    | '/api/internal/coin-grants/pending'
+    | '/api/internal/coin-grants/$id/claim'
+    | '/api/internal/coin-grants/$id/delivered'
+    | '/api/internal/coin-grants/$id/release'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   SiteRoute: typeof SiteRouteWithChildren
   ApiLiveRoute: typeof ApiLiveRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
+  ApiInternalCoinGrantsPendingRoute: typeof ApiInternalCoinGrantsPendingRoute
+  ApiInternalCoinGrantsIdClaimRoute: typeof ApiInternalCoinGrantsIdClaimRoute
+  ApiInternalCoinGrantsIdDeliveredRoute: typeof ApiInternalCoinGrantsIdDeliveredRoute
+  ApiInternalCoinGrantsIdReleaseRoute: typeof ApiInternalCoinGrantsIdReleaseRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -334,6 +399,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/stripe/webhook': {
+      id: '/api/stripe/webhook'
+      path: '/api/stripe/webhook'
+      fullPath: '/api/stripe/webhook'
+      preLoaderRoute: typeof ApiStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/coin-grants/pending': {
+      id: '/api/internal/coin-grants/pending'
+      path: '/api/internal/coin-grants/pending'
+      fullPath: '/api/internal/coin-grants/pending'
+      preLoaderRoute: typeof ApiInternalCoinGrantsPendingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/coin-grants/$id/claim': {
+      id: '/api/internal/coin-grants/$id/claim'
+      path: '/api/internal/coin-grants/$id/claim'
+      fullPath: '/api/internal/coin-grants/$id/claim'
+      preLoaderRoute: typeof ApiInternalCoinGrantsIdClaimRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/coin-grants/$id/delivered': {
+      id: '/api/internal/coin-grants/$id/delivered'
+      path: '/api/internal/coin-grants/$id/delivered'
+      fullPath: '/api/internal/coin-grants/$id/delivered'
+      preLoaderRoute: typeof ApiInternalCoinGrantsIdDeliveredRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/coin-grants/$id/release': {
+      id: '/api/internal/coin-grants/$id/release'
+      path: '/api/internal/coin-grants/$id/release'
+      fullPath: '/api/internal/coin-grants/$id/release'
+      preLoaderRoute: typeof ApiInternalCoinGrantsIdReleaseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -385,6 +485,11 @@ const rootRouteChildren: RootRouteChildren = {
   SiteRoute: SiteRouteWithChildren,
   ApiLiveRoute: ApiLiveRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiStripeWebhookRoute: ApiStripeWebhookRoute,
+  ApiInternalCoinGrantsPendingRoute: ApiInternalCoinGrantsPendingRoute,
+  ApiInternalCoinGrantsIdClaimRoute: ApiInternalCoinGrantsIdClaimRoute,
+  ApiInternalCoinGrantsIdDeliveredRoute: ApiInternalCoinGrantsIdDeliveredRoute,
+  ApiInternalCoinGrantsIdReleaseRoute: ApiInternalCoinGrantsIdReleaseRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

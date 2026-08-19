@@ -1,0 +1,16 @@
+# Hub that owns Stripe orders and nlo_coin_grants.
+hub-url: https://nlo.gg
+
+# Shared secret. Prefer NLO_INTERNAL_SECRET in the process env or secret-file.
+# Never put this in a client or commit it.
+internal-secret: ""
+secret-file: /opt/nlo/nlo.env
+
+# How often to drain pending grants for online players.
+poll-seconds: 15
+
+# Wait for NLOP to create the player's account after login.
+join-delay-ticks: 40
+
+# NLOP SQLite ledger — used to make season admin balance idempotent.
+gameplay-db: plugins/NLOP/gameplay.db

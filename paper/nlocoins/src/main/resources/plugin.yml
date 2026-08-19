@@ -1,0 +1,12 @@
+name: NLOCoins
+version: 1.0.0
+main: io.nlo.coins.NLOCoinPlugin
+api-version: '1.21'
+load: POSTWORLD
+description: Delivers nlo.gg shop coin packs into the live NLO economy.
+author: NLO
+softdepend:
+  - NLOP
+  - Vault
+  - Essentials
+  - EssentialsX

@@ -6,9 +6,12 @@ import { readOrders, readWallet } from "@/lib/nlo/wallet";
 import { COIN_PACKS } from "@/lib/nlo/content";
 import { createCoinCheckout, fulfillStripeSession, stripeConfigured } from "@/lib/nlo/stripe";
 import { getWorldSnapshot, type SeenPlayer } from "@/lib/nlo/live";
+import { bindPendingGrants, claimIgnAvailable, readGrantDesk } from "@/lib/nlo/grants";
+import { isValidIgn, type GrantDesk } from "@/lib/nlo/grant-shared";
 
 export type { LiveStatus, SeenPlayer, WorldSnapshot } from "@/lib/nlo/live";
-export type { OrderRow, Wallet } from "@/lib/nlo/wallet";
+export type { OrderRow, PaidPackResult, Wallet } from "@/lib/nlo/wallet";
+export type { GrantDesk, GrantRow } from "@/lib/nlo/grant-shared";
 
 export type BountyRow = {
   id: number;
@@ -103,12 +106,16 @@ export const saveClaim = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((ign: string) => ignSchema.parse(ign))
   .handler(async ({ context, data: ign }) => {
+    if (!isValidIgn(ign)) throw new Error("Use a Minecraft name.");
+    const available = await claimIgnAvailable(context.userId, ign);
+    if (!available) throw new Error("That IGN is already claimed.");
     const sql = await getSql();
     await sql`
       insert into nlo_claims (user_id, ign)
       values (${context.userId}, ${ign})
       on conflict (user_id) do update set ign = excluded.ign
     `;
+    await bindPendingGrants(context.userId, ign);
     return ign;
   });
 
@@ -218,5 +225,21 @@ export const fulfillCheckout = createServerFn({ method: "POST" })
   .validator((sessionId: string) => z.string().min(8).max(200).parse(sessionId))
   .handler(async ({ context, data: sessionId }) => {
     return fulfillStripeSession(sessionId, context.userId);
+  });
+
+export const getGrantDesk = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }): Promise<GrantDesk> => {
+    try {
+      return await readGrantDesk(context.userId);
+    } catch {
+      return {
+        claimedIgn: null,
+        pendingCoins: 0,
+        pendingCount: 0,
+        deliveredCoins: 0,
+        grants: [],
+      };
+    }
   });
 

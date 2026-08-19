@@ -7,14 +7,18 @@ import { Button } from "@/components/ui/button";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { COIN_PACKS } from "@/lib/nlo/content";
+import { CoinDeliveryPanel } from "@/components/coin-delivery";
 import {
   fulfillCheckout,
+  getGrantDesk,
   getOrders,
   getPayStatus,
   getWallet,
   startCheckout,
+  type GrantDesk,
   type OrderRow,
 } from "@/lib/nlo/server";
+import { deliveryToast } from "@/lib/nlo/grant-shared";
 import { formatInt, formatWhen } from "@/lib/utils";
 
 export const Route = createFileRoute("/_site/shop")({
@@ -25,6 +29,13 @@ function ShopPage() {
   const { user, isPending } = useCurrentUserState();
   const [coins, setCoins] = useState(0);
   const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [desk, setDesk] = useState<GrantDesk>({
+    claimedIgn: null,
+    pendingCoins: 0,
+    pendingCount: 0,
+    deliveredCoins: 0,
+    grants: [],
+  });
   const [card, setCard] = useState(false);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -43,11 +54,12 @@ function ShopPage() {
   useEffect(() => {
     if (isPending || !user) return;
     let cancelled = false;
-    void Promise.all([getWallet(), getOrders(), getPayStatus()])
-      .then(([w, o, pay]) => {
+    void Promise.all([getWallet(), getOrders(), getPayStatus(), getGrantDesk()])
+      .then(([w, o, pay, grants]) => {
         if (cancelled) return;
         setCoins(w.coins);
         setOrders(o);
+        setDesk(grants);
         setCard(pay.card);
         setReady(true);
       })
@@ -71,9 +83,20 @@ function ShopPage() {
           const next = [res.order, ...prev.filter((o) => o.id !== res.order.id)];
           return next.slice(0, 20);
         });
-        toast.success(
-          res.already ? "That pack is already on this desk." : `Added ${formatInt(res.order.coins)} coins`,
-        );
+        setDesk((prev) => {
+          const grant = res.grant;
+          const grants = [grant, ...prev.grants.filter((g) => g.id !== grant.id)].slice(0, 20);
+          const open = grants.filter((g) => g.status === "pending" || g.status === "delivering");
+          const done = grants.filter((g) => g.status === "delivered");
+          return {
+            claimedIgn: grant.ign ?? prev.claimedIgn,
+            pendingCoins: open.reduce((sum, g) => sum + g.coins, 0),
+            pendingCount: open.length,
+            deliveredCoins: done.reduce((sum, g) => sum + g.coins, 0),
+            grants,
+          };
+        });
+        toast.success(res.already ? "That pack is already on this desk." : deliveryToast(res.grant));
       })
       .catch((err) => {
         if (!cancelled) toast.error(err instanceof Error ? err.message : "Could not confirm payment");
@@ -120,12 +143,12 @@ function ShopPage() {
     <PageFrame
       eyebrow="Commerce"
       title="Buy coins"
-      lead="Pays by card through Stripe. Coins land on this desk after the charge succeeds — shops, AH, plots, bounties."
+      lead="Pays by card through Stripe. After the charge, coins queue for your claimed Minecraft IGN and deposit into the live NLO economy."
     >
       <Panel texture="oak" className="mb-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="font-mono text-xs tracking-widest text-accent uppercase">Balance</p>
+            <p className="font-mono text-xs tracking-widest text-accent uppercase">Desk ledger</p>
             <p className="mt-1 font-display text-5xl tabular-nums">
               {ready ? formatInt(coins) : "—"}
             </p>
@@ -139,6 +162,7 @@ function ShopPage() {
             <Link to="/account">Manage account</Link>
           </Button>
         </div>
+        <CoinDeliveryPanel desk={desk} ready={ready} />
       </Panel>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -195,8 +219,9 @@ function ShopPage() {
             <p className="font-mono text-xs tracking-widest text-accent uppercase">Card checkout</p>
             <h2 className="mt-2 text-3xl">{confirm.name}</h2>
             <p className="mt-3 text-sm text-muted">
-              {formatInt(confirm.coins)} coins for ${confirm.usd}. Stripe takes the card. Coins
-              credit only after the charge succeeds.
+              {formatInt(confirm.coins)} coins for ${confirm.usd}. Stripe takes the card. After
+              payment they queue for your claimed IGN and spend in the NLO shop, AH, plots, and
+              bounties.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               <Button disabled={busy !== null} onClick={() => void pay(confirm.id)}>

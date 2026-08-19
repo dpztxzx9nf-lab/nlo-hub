@@ -5,3 +5,5 @@ attachments
 *.log
 .env
 .DS_Store
+paper/nlocoins/build
+.output

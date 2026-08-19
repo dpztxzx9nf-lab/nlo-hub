@@ -1,5 +1,6 @@
 import { getSql } from "@/lib/db";
 import { COIN_PACKS } from "@/lib/nlo/content";
+import { enqueuePaidGrant, type GrantRow } from "@/lib/nlo/grants";
 
 export type Wallet = {
   coins: number;
@@ -88,7 +89,48 @@ export async function grantPaidPack(userId: string, packId: string, stripeSessio
     limit 1
   `;
   if (existing[0]) {
-    return { wallet: await readWallet(userId), order: normalizeOrder(existing[0]), already: true };
+    const grant = await enqueuePaidGrant({
+      userId,
+      coins: Number(existing[0].coins) || pack.coins,
+      stripeSessionId,
+    });
+    return {
+      wallet: await readWallet(userId),
+      order: normalizeOrder(existing[0]),
+      already: true,
+      grant,
+    };
+  }
+  let inserted: OrderRow | undefined;
+  try {
+    const rows = await sql<OrderRow>`
+      insert into nlo_orders (user_id, pack_id, coins, usd, status, stripe_session_id)
+      values (${userId}, ${pack.id}, ${pack.coins}, ${pack.usd}, 'paid', ${stripeSessionId})
+      returning id, pack_id, coins, usd, status, created_at::text as created_at
+    `;
+    inserted = rows[0];
+  } catch {
+    inserted = undefined;
+  }
+  if (!inserted) {
+    const raced = await sql<OrderRow>`
+      select id, pack_id, coins, usd, status, created_at::text as created_at
+      from nlo_orders
+      where stripe_session_id = ${stripeSessionId}
+      limit 1
+    `;
+    if (!raced[0]) throw new Error("Could not record the paid pack.");
+    const grant = await enqueuePaidGrant({
+      userId,
+      coins: Number(raced[0].coins) || pack.coins,
+      stripeSessionId,
+    });
+    return {
+      wallet: await readWallet(userId),
+      order: normalizeOrder(raced[0]),
+      already: true,
+      grant,
+    };
   }
   await sql`
     insert into nlo_wallets (user_id, coins, updated_at)
@@ -97,17 +139,25 @@ export async function grantPaidPack(userId: string, packId: string, stripeSessio
       coins = nlo_wallets.coins + excluded.coins,
       updated_at = now()
   `;
-  const order = await sql<OrderRow>`
-    insert into nlo_orders (user_id, pack_id, coins, usd, status, stripe_session_id)
-    values (${userId}, ${pack.id}, ${pack.coins}, ${pack.usd}, 'paid', ${stripeSessionId})
-    returning id, pack_id, coins, usd, status, created_at::text as created_at
-  `;
+  const grant = await enqueuePaidGrant({
+    userId,
+    coins: pack.coins,
+    stripeSessionId,
+  });
   return {
     wallet: await readWallet(userId),
-    order: normalizeOrder(order[0]),
+    order: normalizeOrder(inserted),
     already: false,
+    grant,
   };
 }
+
+export type PaidPackResult = {
+  wallet: Wallet;
+  order: OrderRow;
+  already: boolean;
+  grant: GrantRow;
+};
 
 function normalizeOrder(r: OrderRow): OrderRow {
   return {

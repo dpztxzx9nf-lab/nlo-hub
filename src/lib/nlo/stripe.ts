@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { grantPaidPack } from "@/lib/nlo/wallet";
 
 function secret() {
@@ -78,4 +79,51 @@ export async function fulfillStripeSession(sessionId: string, userId: string) {
   const packId = meta.packId;
   if (!packId) throw new Error("Checkout is missing a pack.");
   return grantPaidPack(userId, packId, sessionId);
+}
+
+export function webhookSecret() {
+  return process.env.STRIPE_WEBHOOK_SECRET?.trim() || "";
+}
+
+export function verifyStripeSignature(payload: string, header: string, secret: string, now = Date.now()): boolean {
+  if (!payload || !header || !secret) return false;
+  const parts = Object.fromEntries(
+    header.split(",").map((part) => {
+      const [k, ...rest] = part.split("=");
+      return [k?.trim(), rest.join("=").trim()];
+    }),
+  );
+  const timestamp = Number(parts.t);
+  const signature = parts.v1;
+  if (!Number.isFinite(timestamp) || !signature) return false;
+  if (Math.abs(now / 1000 - timestamp) > 300) return false;
+  const expected = createHmac("sha256", secret).update(`${timestamp}.${payload}`).digest("hex");
+  const a = Buffer.from(signature);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
+export async function fulfillStripeWebhook(payload: string, signature: string) {
+  const secret = webhookSecret();
+  if (!secret) throw new Error("Stripe webhook is not configured.");
+  if (!verifyStripeSignature(payload, signature, secret)) {
+    throw new Error("Invalid Stripe signature.");
+  }
+  const event = JSON.parse(payload) as {
+    type?: string;
+    data?: { object?: Record<string, unknown> };
+  };
+  if (event.type !== "checkout.session.completed") {
+    return { ignored: true as const };
+  }
+  const session = event.data?.object ?? {};
+  const sessionId = typeof session.id === "string" ? session.id : "";
+  const paid = session.payment_status === "paid" || session.status === "complete";
+  const meta = (session.metadata ?? {}) as { userId?: string; packId?: string };
+  if (!sessionId.startsWith("cs_") || !paid || !meta.userId || !meta.packId) {
+    return { ignored: true as const };
+  }
+  const result = await grantPaidPack(meta.userId, meta.packId, sessionId);
+  return { ignored: false as const, ...result };
 }
