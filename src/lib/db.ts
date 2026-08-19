@@ -7,6 +7,8 @@ const rawDatabaseUrl =
   typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
 const databaseUrl =
   rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
+const pgliteDataDir =
+  typeof process !== "undefined" ? process.env.PGLITE_DATA_DIR?.trim() : undefined;
 
 /**
  * Active backend: real **Neon** when `DATABASE_URL` is set (deployed / configured
@@ -109,14 +111,21 @@ async function createPgliteSql(): Promise<Sql> {
   // data survives source edits (it resets on dev-server restart).
   globalRef.__pgliteInstance__ ??= (async () => {
     const { PGlite } = await import("@electric-sql/pglite");
-    const pg = new PGlite({
-      parsers: {
-        [OID_INT8]: Number,
-        [OID_DATE]: identity,
-        [OID_INTERVAL]: identity,
-      },
-    });
-    await pg.waitReady;
+    const parsers = {
+      [OID_INT8]: Number,
+      [OID_DATE]: identity,
+      [OID_INTERVAL]: identity,
+    };
+    const pg = pgliteDataDir
+      ? new PGlite(pgliteDataDir, { parsers })
+      : new PGlite({ parsers });
+    const ready = pg.waitReady as Promise<unknown>;
+    await Promise.race([
+      ready,
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("PGLite waitReady timed out")), 20_000);
+      }),
+    ]);
     await pg.exec(
       "create table if not exists _migrations (name text primary key, applied_at timestamptz not null default now())",
     );

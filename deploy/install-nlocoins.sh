@@ -37,8 +37,10 @@ do
   if [ -d "$d" ]; then PLUGINS="$d"; break; fi
 done
 if [ -z "$PLUGINS" ]; then
-  echo "Paper plugins directory not found."
-  echo "Copy $JAR to the live plugins folder, then restart Paper or load NLOCoins."
+  echo "Paper is not on this VPS."
+  echo "Live Paper is the Dell G15: C:\\Projects\\Minecraft\\servers\\nlo-local\\plugins"
+  echo "On that machine run: powershell -File deploy/install-nlocoins-dell.ps1"
+  echo "Or copy $JAR there and queue: plugman reload NLOCoins"
   exit 3
 fi
 

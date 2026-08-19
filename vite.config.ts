@@ -134,6 +134,11 @@ export default defineConfig(({ command }) => ({
     port: 8080,
     strictPort: true,
   },
+  // Nitro's bundled PGlite cannot find pglite.data/wasm and hangs getSql().
+  // Load the real package from node_modules on the node-server box.
+  ssr: {
+    external: ["@electric-sql/pglite"],
+  },
   resolve: { tsconfigPaths: true },
   plugins: [
     pgliteBootstrapPlugin(),
@@ -151,6 +156,9 @@ export default defineConfig(({ command }) => ({
             // manifest + head-tag middleware). Nitro v3 defaults serverDir to
             // false, so removing this silently unwires /?install=1 on deploys.
             serverDir: "./server",
+            rollupConfig: {
+              external: ["@electric-sql/pglite"],
+            },
           }),
         ]
       : []),
