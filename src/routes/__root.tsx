@@ -19,7 +19,7 @@ export const Route = createRootRoute({
           "Join nlo.gg tonight. Java 26.2 / Bedrock SMP. Season One: top player $50, top builder $20, top clan 25,000 coins each.",
       },
       { name: "apple-mobile-web-app-title", content: APP_NAME },
-      { name: "theme-color", content: "#0e1610" },
+      { name: "theme-color", content: "#08070b" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
       { property: "og:title", content: "NLO — join tonight. Season One $50 / $20 / 25k coins" },
@@ -47,13 +47,13 @@ export const Route = createRootRoute({
     <html
       lang="en"
       className="antialiased"
-      style={{ background: "#0e1610", color: "#eef2e4" }}
+      style={{ background: "#08070b", color: "#f0ecf4" }}
       suppressHydrationWarning
     >
       <head>
         <HeadContent />
       </head>
-      <body style={{ background: "#0e1610", color: "#eef2e4", margin: 0 }}>
+      <body style={{ background: "#08070b", color: "#f0ecf4", margin: 0 }}>
         <PreviewHostBridge />
         <AuthProvider>
           <Outlet />
