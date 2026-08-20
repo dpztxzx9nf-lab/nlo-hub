@@ -123,7 +123,7 @@ function ReceiptPage() {
               phase={phase}
               ign={receipt.claimedIgn}
               showJoin={phase === "join" || phase === "collect"}
-              canSpend={receipt.grantStatus === "delivered"}
+              canSpend={false}
             />
           </div>
         ) : null}
@@ -135,7 +135,7 @@ function ReceiptPage() {
               <p className="font-medium">Join as {receipt.claimedIgn}</p>
               <p className="mt-1 text-sm text-muted">
                 {receipt.grantStatus === "delivered"
-                  ? "Those coins already landed in-game."
+                  ? "Those coins already landed in-game. They left this desk when they did."
                   : receipt.plugin === false
                     ? "Queued on this desk. They deposit once the live box pulls the grant."
                     : "They deposit on the next login, or within a few seconds if you are already online."}
@@ -170,11 +170,6 @@ function ReceiptPage() {
         ) : null}
 
         <div className="mt-6 flex flex-wrap gap-2">
-          {receipt.grantStatus === "delivered" ? (
-            <Button asChild>
-              <Link to="/bounties">Post a bounty</Link>
-            </Button>
-          ) : null}
           <CopyIp />
           <Button variant="stone" asChild>
             <Link to="/play">How to join</Link>

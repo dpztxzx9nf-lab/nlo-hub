@@ -345,22 +345,59 @@ export async function claimGrantForDelivery(id: number): Promise<GrantRow | null
   return rows[0] ? normalizeGrant(rows[0]) : null;
 }
 
+/**
+ * Mark a shop grant delivered in-game and clear the matching desk balance.
+ * Desk is a holding account until NLOCoins settles — residual desk coins must
+ * not stay spendable for bounties after the same pack lands in-game.
+ * Soft-clamps the debit so prior bounty spends do not block plugin retries.
+ * Status flip + desk clear run in one statement so they cannot diverge.
+ */
 export async function markGrantDelivered(id: number, ign?: string): Promise<GrantRow | null> {
   await ensureGrantTables();
   const sql = await getSql();
-  const rows = await sql<GrantRow>`
-    update nlo_coin_grants
-    set status = 'delivered',
-        delivered_at = coalesce(delivered_at, now()),
-        ign = coalesce(${ign ?? null}, ign)
+
+  // Atomic: only the first pending/delivering → delivered transition debits the desk.
+  // CTE keeps the status guard and soft-debit in the same statement.
+  const rows = await sql.query<GrantRow>(
+    `WITH flipped AS (
+       UPDATE nlo_coin_grants
+       SET status = 'delivered',
+           delivered_at = COALESCE(delivered_at, now()),
+           ign = COALESCE($2, ign)
+       WHERE id = $1
+         AND status IN ('pending', 'delivering')
+       RETURNING id, user_id, ign, coins, stripe_session_id, status,
+                 created_at::text AS created_at,
+                 delivered_at::text AS delivered_at,
+                 attempted_at::text AS attempted_at
+     ),
+     debited AS (
+       UPDATE nlo_wallets w
+       SET coins = GREATEST(0, w.coins - f.coins),
+           updated_at = now()
+       FROM flipped f
+       WHERE w.user_id = f.user_id
+       RETURNING f.id
+     )
+     SELECT id, user_id, ign, coins, stripe_session_id, status,
+            created_at, delivered_at, attempted_at
+     FROM flipped`,
+    [id, ign ?? null],
+  );
+
+  if (rows[0]) return normalizeGrant(rows[0]);
+
+  // Idempotent: plugin may retry after we already flipped status.
+  const existing = await sql<GrantRow>`
+    select id, user_id, ign, coins, stripe_session_id, status,
+           created_at::text as created_at,
+           delivered_at::text as delivered_at,
+           attempted_at::text as attempted_at
+    from nlo_coin_grants
     where id = ${id}
-      and status in ('pending', 'delivering', 'delivered')
-    returning id, user_id, ign, coins, stripe_session_id, status,
-              created_at::text as created_at,
-              delivered_at::text as delivered_at,
-              attempted_at::text as attempted_at
+    limit 1
   `;
-  return rows[0] ? normalizeGrant(rows[0]) : null;
+  return existing[0] ? normalizeGrant(existing[0]) : null;
 }
 
 export async function releaseGrant(id: number): Promise<GrantRow | null> {

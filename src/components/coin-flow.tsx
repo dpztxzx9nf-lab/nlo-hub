@@ -24,7 +24,7 @@ const STEPS: { id: Exclude<CoinFlowPhase, "done">; title: string; detail: string
   {
     id: "collect",
     title: "Stay online or log in again",
-    detail: "Coins land on that account within a few seconds.",
+    detail: "Coins land on that account within a few seconds. They leave this desk when they do.",
   },
 ];
 
@@ -73,7 +73,7 @@ export function CoinFlow({
           const state = i < current ? "done" : i === current ? "now" : "todo";
           const detail =
             step.id === "collect" && ign
-              ? `Join as ${ign}. Coins land within a few seconds if you are already online.`
+              ? `Join as ${ign}. Coins land within a few seconds if you are already online — and leave this desk when they do.`
               : step.detail;
           return (
             <li key={step.id} className="flex gap-3">
@@ -106,16 +106,18 @@ export function CoinFlow({
           </Button>
         </div>
       ) : null}
-      {phase === "done" && canSpend ? (
+      {phase === "done" ? (
         <div className="mt-4">
           <p className="text-sm text-muted">
             {ign
-              ? `Those coins are on ${ign} in-game. Spend them on a funded bounty.`
-              : "Those coins are in-game. Spend them on a funded bounty."}
+              ? `Those coins are on ${ign} in-game. This desk only holds packs that have not landed yet.`
+              : "Those coins are in-game. This desk only holds packs that have not landed yet."}
           </p>
-          <Button className="mt-3" asChild>
-            <Link to="/bounties">Post a bounty</Link>
-          </Button>
+          {canSpend ? (
+            <Button className="mt-3" asChild>
+              <Link to="/bounties">Post a bounty</Link>
+            </Button>
+          ) : null}
         </div>
       ) : null}
     </div>
