@@ -133,3 +133,20 @@ test("plugin is live if it polled within 45 seconds", () => {
   assert.equal(Boolean(seenAt && 1_000_000 + 60_000 - seenAt < windowMs), false);
   assert.equal(Boolean(undefined && 1_000_000 - 0 < windowMs), false);
 });
+
+function retainPlayerSample(players, sample, previous, previousAt, now = Date.now(), maxAgeMs = 120_000) {
+  if (!Number.isFinite(players) || players <= 0) return [];
+  if (sample.length > 0) return sample;
+  if (!previous?.length) return sample;
+  if (previousAt != null && now - previousAt > maxAgeMs) return sample;
+  return previous;
+}
+
+test("empty player samples keep the last good names for two minutes", () => {
+  const names = [{ ign: "Steve" }];
+  assert.deepEqual(retainPlayerSample(4, names, []), names);
+  assert.deepEqual(retainPlayerSample(4, [], names, 1_000, 2_000), names);
+  assert.deepEqual(retainPlayerSample(4, [], names, 1_000, 200_000), []);
+  assert.deepEqual(retainPlayerSample(0, names, names, 1_000, 2_000), []);
+  assert.deepEqual(retainPlayerSample(4, [], [], 1_000, 2_000), []);
+});

@@ -40,7 +40,16 @@ function BountiesPage() {
         }}
       />
       <ul className="mt-6 grid gap-3">
-        {list.map((b) => (
+        {list.length === 0 ? (
+          <li>
+            <Panel>
+              <p className="text-sm text-muted">
+                No funded names yet. Sign in, claim your IGN, and post one.
+              </p>
+            </Panel>
+          </li>
+        ) : (
+          list.map((b) => (
           <li key={b.id}>
             <Panel texture={b.status === "open" ? "oak" : "stone"}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -63,7 +72,8 @@ function BountiesPage() {
               </div>
             </Panel>
           </li>
-        ))}
+          ))
+        )}
       </ul>
     </PageFrame>
   );

@@ -167,7 +167,7 @@ function Footer() {
         <div>
           <p className="font-display text-2xl">{SERVER.name}</p>
           <p className="mt-1 max-w-sm text-sm text-muted">
-            {SERVER.fullName}. Live roster from the real server ping.
+            Open SMP. Java, Bedrock, and console on one world.
           </p>
         </div>
         <div className="flex flex-wrap gap-4 text-sm text-muted">

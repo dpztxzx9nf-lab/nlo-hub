@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { PageFrame, Panel } from "@/components/page-frame";
 import { PlayerFace } from "@/components/player-face";
-import { StatusLive, useLiveWorld } from "@/components/status-live";
+import { StatusLive, applyLiveRoster, useLiveWorld } from "@/components/status-live";
 import { Badge } from "@/components/ui/badge";
 import type { SeenPlayer } from "@/lib/nlo/server";
 import { getRoster, getLiveStatus } from "@/lib/nlo/server";
@@ -29,33 +29,7 @@ function BoardsPage() {
   const live = useLiveWorld(status);
   const [tab, setTab] = useState<Tab>("online");
 
-  const merged = useMemo(() => {
-    const liveNames = new Set(live.online.map((p) => p.ign.toLowerCase()));
-    const byIgn = new Map(roster.map((p) => [p.ign.toLowerCase(), { ...p }]));
-    for (const name of live.online) {
-      const key = name.ign.toLowerCase();
-      const existing = byIgn.get(key);
-      if (existing) {
-        existing.online = true;
-        existing.uuid = existing.uuid ?? name.uuid;
-      } else {
-        byIgn.set(key, {
-          ign: name.ign,
-          uuid: name.uuid,
-          first_seen: "",
-          last_seen: "",
-          seen_count: 1,
-          online: true,
-        });
-      }
-    }
-    if (live.status.checked) {
-      for (const p of byIgn.values()) {
-        if (!liveNames.has(p.ign.toLowerCase())) p.online = false;
-      }
-    }
-    return [...byIgn.values()];
-  }, [roster, live.online, live.status.checked]);
+  const merged = useMemo(() => applyLiveRoster(roster, live), [roster, live]);
 
   const rows = useMemo(() => {
     const copy = [...merged];
@@ -70,8 +44,8 @@ function BoardsPage() {
   return (
     <PageFrame
       eyebrow="Ledger"
-      title="Who is actually here"
-      lead="Pulled from the live nlo.gg ping. Sightings grow as people join."
+      title="Sightings"
+      lead="Who the world has seen. Online names update as people join."
     >
       <div className="mb-4">
         <StatusLive status={status} />

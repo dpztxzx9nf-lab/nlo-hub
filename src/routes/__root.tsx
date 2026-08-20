@@ -16,7 +16,7 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "NLO — Netherite Legends Odyssey. Live Java 26.2 / Bedrock SMP. Roster is pulled from the real server ping.",
+          "NLO — Netherite Legends Odyssey. Java 26.2 / Bedrock SMP. Build, trade, raid, and hunt bounties on one shared world.",
       },
       { name: "apple-mobile-web-app-title", content: APP_NAME },
       { name: "theme-color", content: "#0e1610" },

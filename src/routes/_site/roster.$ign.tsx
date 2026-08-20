@@ -79,7 +79,7 @@ function ProfilePage() {
             </p>
             <p className="mt-3 text-sm text-muted">
               {seen
-                ? "This card is built from the live Java ping. Prestige and coins will land here when the server exposes them."
+                ? "Prestige and coins will land here when the server exposes them."
                 : "This name has not shown up on nlo.gg since the ledger started watching."}
             </p>
           </Panel>

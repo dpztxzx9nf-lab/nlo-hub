@@ -154,41 +154,48 @@ function ShopPage() {
       }
     >
       <Panel texture="oak" className="mb-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="font-mono text-xs tracking-widest text-accent uppercase">Desk ledger</p>
-            <p className="mt-1 font-display text-5xl tabular-nums">
-              {signedIn && ready ? formatInt(coins) : signedIn ? "—" : "0"}
-            </p>
-            <p className="mt-1 text-sm text-muted">
-              {!signedIn
-                ? !card
+        {signedIn ? (
+          <>
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="font-mono text-xs tracking-widest text-accent uppercase">Desk ledger</p>
+                <p className="mt-1 font-display text-5xl tabular-nums">
+                  {ready ? formatInt(coins) : "—"}
+                </p>
+                <p className="mt-1 text-sm text-muted">
+                  {!card
+                    ? "Packs are listed. Card checkout turns on when Stripe is connected."
+                    : !live
+                      ? "Stripe is still in test mode. No real money moves until a live secret key is installed."
+                      : webhook
+                        ? "Real card charges. Stripe confirms even if you close the tab, then coins queue for your claimed IGN."
+                        : "Real card charges. Return to this page after Stripe so we can credit the pack."}
+                </p>
+              </div>
+              <Button variant="stone" asChild>
+                <Link to="/account">Manage account</Link>
+              </Button>
+            </div>
+            <CoinDeliveryPanel desk={desk} ready={ready} plugin={plugin} />
+          </>
+        ) : (
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="font-mono text-xs tracking-widest text-accent uppercase">Shop</p>
+              <p className="mt-1 font-display text-4xl">Coin packs</p>
+              <p className="mt-1 text-sm text-muted">
+                {!card
                   ? "Sign in to buy a pack. Coins queue for your claimed IGN and land in the live NLO economy."
                   : live
                     ? "Sign in to buy a pack. Coins queue for your claimed IGN and land in the live NLO economy."
-                    : "Sign in to try a pack. Checkout is Stripe test mode — no real money moves yet."
-                : !card
-                  ? "Packs are listed. Card checkout turns on when Stripe is connected."
-                  : !live
-                    ? "Stripe is still in test mode. No real money moves until a live secret key is installed."
-                    : webhook
-                      ? "Real card charges. Stripe confirms even if you close the tab, then coins queue for your claimed IGN."
-                      : "Real card charges. Return to this page after Stripe so we can credit the pack."}
-            </p>
-          </div>
-          {signedIn ? (
-            <Button variant="stone" asChild>
-              <Link to="/account">Manage account</Link>
-            </Button>
-          ) : (
+                    : "Sign in to try a pack. Checkout is Stripe test mode — no real money moves yet."}
+              </p>
+            </div>
             <Button asChild>
               <Link to="/login">Sign in to buy</Link>
             </Button>
-          )}
-        </div>
-        {signedIn ? (
-          <CoinDeliveryPanel desk={desk} ready={ready} plugin={plugin} />
-        ) : null}
+          </div>
+        )}
       </Panel>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

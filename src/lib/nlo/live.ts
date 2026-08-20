@@ -58,6 +58,21 @@ const globalRef = globalThis as typeof globalThis & {
   __nloLastSampleKey__?: string;
 };
 
+export function retainPlayerSample<T>(
+  players: number,
+  sample: T[],
+  previous: T[] | undefined,
+  previousAt?: number,
+  now = Date.now(),
+  maxAgeMs = 120_000,
+): T[] {
+  if (!Number.isFinite(players) || players <= 0) return [];
+  if (sample.length > 0) return sample;
+  if (!previous?.length) return sample;
+  if (previousAt != null && now - previousAt > maxAgeMs) return sample;
+  return previous;
+}
+
 function emptyStatus(): LiveStatus {
   return {
     online: false,
@@ -204,7 +219,8 @@ async function refreshWorld(): Promise<WorldSnapshot> {
     try {
       const ping = await pingWorld();
       status = ping.status;
-      sample = ping.sample;
+      const last = globalRef.__nloLastGood__;
+      sample = retainPlayerSample(status.players, ping.sample, last?.sample, last?.at);
       globalRef.__nloLastGood__ = { at: Date.now(), status, sample };
       const key = sampleKey(sample);
       const due = Date.now() - (globalRef.__nloLastPersist__ ?? 0) > PERSIST_MS;

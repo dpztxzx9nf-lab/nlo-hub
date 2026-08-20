@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { getSnapshot } from "@/lib/nlo/server";
-import type { LiveStatus } from "@/lib/nlo/server";
+import type { LiveStatus, SeenPlayer } from "@/lib/nlo/server";
 import { cn } from "@/lib/utils";
 
 export type LiveName = { ign: string; uuid: string | null };
@@ -68,6 +68,11 @@ let timer: number | null = null;
 let inflight = false;
 
 function emit(next: LiveWorld) {
+  if (next.status.players === 0) {
+    next = { ...next, online: [] };
+  } else if (next.online.length === 0 && latest?.online.length) {
+    next = { ...next, online: latest.online };
+  }
   latest = next;
   listeners.forEach((fn) => fn());
 }
@@ -144,6 +149,36 @@ export function useLiveWorld(initial?: LiveStatus): LiveWorld {
 
 export function useLiveStatus(initial?: LiveStatus): LiveStatus {
   return useLiveWorld(initial).status;
+}
+
+export function applyLiveRoster(roster: SeenPlayer[], live: LiveWorld): SeenPlayer[] {
+  const liveNames = new Set(live.online.map((p) => p.ign.toLowerCase()));
+  const byIgn = new Map(roster.map((p) => [p.ign.toLowerCase(), { ...p }]));
+  for (const name of live.online) {
+    const key = name.ign.toLowerCase();
+    const existing = byIgn.get(key);
+    if (existing) {
+      existing.online = true;
+      existing.uuid = existing.uuid ?? name.uuid;
+    } else {
+      byIgn.set(key, {
+        ign: name.ign,
+        uuid: name.uuid,
+        first_seen: "",
+        last_seen: "",
+        seen_count: 1,
+        online: true,
+      });
+    }
+  }
+  const sampleTrustsOffline =
+    live.status.checked && (live.online.length > 0 || live.status.players === 0);
+  if (sampleTrustsOffline) {
+    for (const p of byIgn.values()) {
+      if (!liveNames.has(p.ign.toLowerCase())) p.online = false;
+    }
+  }
+  return [...byIgn.values()];
 }
 
 function PulseDot({ on }: { on: boolean }) {

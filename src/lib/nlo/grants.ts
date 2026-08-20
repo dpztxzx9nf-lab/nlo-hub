@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
+import { readFileSync, writeFileSync } from "node:fs";
 import { getSql } from "@/lib/db";
 import {
   ignKey,
@@ -46,14 +47,31 @@ export function internalSecret(): string {
 
 const pluginSeenRef = globalThis as typeof globalThis & { __nloPluginSeenAt__?: number };
 const PLUGIN_SEEN_MS = 45_000;
+const PLUGIN_SEEN_FILE = process.env.NLO_PLUGIN_SEEN_FILE?.trim() || "/tmp/nlo-plugin-seen";
+
+function readPluginSeenFile(): number | undefined {
+  try {
+    const raw = Number(readFileSync(PLUGIN_SEEN_FILE, "utf8").trim());
+    return Number.isFinite(raw) && raw > 0 ? raw : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 /** Call after a successful NLOCoins poll so shop status can show the Paper box is live. */
 export function notePluginPoll() {
-  pluginSeenRef.__nloPluginSeenAt__ = Date.now();
+  const now = Date.now();
+  pluginSeenRef.__nloPluginSeenAt__ = now;
+  try {
+    writeFileSync(PLUGIN_SEEN_FILE, String(now));
+  } catch {
+    /* preview / read-only fs */
+  }
 }
 
 export function pluginSeen(now = Date.now()) {
-  const at = pluginSeenRef.__nloPluginSeenAt__;
+  const at = pluginSeenRef.__nloPluginSeenAt__ ?? readPluginSeenFile();
+  if (at && !pluginSeenRef.__nloPluginSeenAt__) pluginSeenRef.__nloPluginSeenAt__ = at;
   return Boolean(at && now - at < PLUGIN_SEEN_MS);
 }
 

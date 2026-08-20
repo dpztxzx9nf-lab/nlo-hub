@@ -56,7 +56,7 @@ function SeasonPage() {
           <div className="tex-grass h-full w-3/5" />
         </div>
         <p className="mt-2 font-mono text-xs text-muted">
-          How we rank #1 is still being written. Show up. The purse waits.
+          How we rank #1: time on the world, funded bounties, and challenges. The $20 purse waits at the close.
         </p>
       </Panel>
 
