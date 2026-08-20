@@ -12,6 +12,7 @@ import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { authClient } from "@/lib/auth/client";
 import { PASSWORD_MIN, passwordIssues } from "@/lib/auth/password";
 import { emptyGrantDesk } from "@/lib/nlo/grant-shared";
+import { BOUNTY_MIN } from "@/lib/nlo/content";
 import {
   getClaimableNames,
   getGrantDesk,
@@ -123,15 +124,15 @@ function AccountPage() {
             <p className="mt-1 font-display text-5xl tabular-nums">
               {ready ? formatInt(coins) : "—"}
             </p>
-            <p className="mt-1 text-sm text-muted">Desk ledger. Gameplay spending uses the in-game balance.</p>
+            <p className="mt-1 text-sm text-muted">This desk. A funded bounty takes coins from here.</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {desk.deliveredCoins > 0 ? (
+            {ready && coins >= BOUNTY_MIN ? (
               <Button asChild>
                 <Link to="/bounties">Post a bounty</Link>
               </Button>
             ) : null}
-            <Button variant={desk.deliveredCoins > 0 ? "stone" : "default"} asChild>
+            <Button variant={ready && coins >= BOUNTY_MIN ? "stone" : "default"} asChild>
               <Link to="/shop">Buy coins</Link>
             </Button>
           </div>
@@ -144,7 +145,7 @@ function AccountPage() {
           phase={phase}
           ign={claimed}
           showJoin={phase === "join" || phase === "collect"}
-          canSpend={desk.deliveredCoins > 0}
+          canSpend={coins >= BOUNTY_MIN}
         />
       </Panel>
 

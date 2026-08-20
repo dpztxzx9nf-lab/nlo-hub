@@ -17,7 +17,7 @@ function safeNext(raw: string | null | undefined): string {
   try {
     const url = new URL(raw, "https://nlo.gg");
     if (url.origin !== "https://nlo.gg") return "/account";
-    const allowed = new Set(["/", "/receipt", "/shop", "/account", "/play", "/login"]);
+    const allowed = new Set(["/", "/receipt", "/shop", "/account", "/play", "/login", "/bounties"]);
     if (!allowed.has(url.pathname)) return "/account";
     return `${url.pathname}${url.search}`;
   } catch {

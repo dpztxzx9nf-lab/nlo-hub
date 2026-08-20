@@ -262,6 +262,27 @@ test("share card names Season One prizes", () => {
   assert.doesNotMatch(src, /open SMP with consequences/);
 });
 
+test("a $1 Pebble can fund the default bounty", () => {
+  function canFundBounty(deskCoins, reward, min = 500) {
+    return Number.isInteger(reward) && reward >= min && reward <= deskCoins;
+  }
+  assert.equal(canFundBounty(1000, 500), true);
+  assert.equal(canFundBounty(1000, 1000), true);
+  assert.equal(canFundBounty(1000, 2500), false);
+  assert.equal(canFundBounty(499, 500), false);
+  const src = readFileSync(new URL("../src/lib/nlo/content.ts", import.meta.url), "utf8");
+  assert.match(src, /BOUNTY_MIN = 500/);
+  const form = readFileSync(new URL("../src/routes/_site/bounties.tsx", import.meta.url), "utf8");
+  assert.match(form, /BOUNTY_MIN/);
+  assert.doesNotMatch(form, /useState\("2500"\)/);
+  assert.match(form, /postBounty/);
+  const logic = readFileSync(new URL("../src/lib/nlo/bounties.ts", import.meta.url), "utf8");
+  assert.match(logic, /debitWallet/);
+  assert.match(logic, /Confirm the Minecraft name you join with/);
+  assert.match(logic, /You cannot put a bounty on yourself/);
+  assert.doesNotMatch(logic, /Unsigned/);
+});
+
 test("done coin flow points at spending on a bounty", () => {
   const src = readFileSync(new URL("../src/components/coin-flow.tsx", import.meta.url), "utf8");
   assert.match(src, /canSpend/);

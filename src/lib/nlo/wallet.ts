@@ -172,6 +172,35 @@ export type PaidPackResult = {
   grant: GrantRow;
 };
 
+export async function debitWallet(userId: string, amount: number): Promise<Wallet> {
+  if (!Number.isInteger(amount) || amount < 1) throw new Error("Invalid coin amount.");
+  await ensureWalletTables();
+  const sql = await getSql();
+  const rows = await sql<{ coins: number }>`
+    update nlo_wallets
+    set coins = coins - ${amount}, updated_at = now()
+    where user_id = ${userId} and coins >= ${amount}
+    returning coins
+  `;
+  if (!rows[0]) throw new Error("Not enough coins on this desk.");
+  return { coins: Number(rows[0].coins) };
+}
+
+export async function creditWallet(userId: string, amount: number): Promise<Wallet> {
+  if (!Number.isInteger(amount) || amount < 1) throw new Error("Invalid coin amount.");
+  await ensureWalletTables();
+  const sql = await getSql();
+  const rows = await sql<{ coins: number }>`
+    insert into nlo_wallets (user_id, coins, updated_at)
+    values (${userId}, ${amount}, now())
+    on conflict (user_id) do update set
+      coins = nlo_wallets.coins + excluded.coins,
+      updated_at = now()
+    returning coins
+  `;
+  return { coins: Number(rows[0]?.coins ?? amount) };
+}
+
 function normalizeOrder(r: OrderRow): OrderRow {
   return {
     id: Number(r.id),

@@ -57,9 +57,18 @@ function ProfilePage() {
               {seen ? <Badge variant="oak">Ledger</Badge> : <Badge variant="wanted">Unseen</Badge>}
             </div>
             {!isPending && user ? (
-              <Button className="mt-4 w-full" variant="stone" disabled={busy} onClick={() => void watch()}>
-                Watch
-              </Button>
+              <div className="mt-4 grid w-full gap-2">
+                <Button variant="stone" disabled={busy} onClick={() => void watch()}>
+                  Watch
+                </Button>
+                {seen ? (
+                  <Button asChild>
+                    <Link to="/bounties" search={{ target: player.ign }}>
+                      Put a bounty on them
+                    </Link>
+                  </Button>
+                ) : null}
+              </div>
             ) : (
               <Button className="mt-4 w-full" variant="stone" asChild>
                 <Link to="/login">Sign in to watch</Link>

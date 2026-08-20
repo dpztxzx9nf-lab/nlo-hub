@@ -3,7 +3,8 @@ import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { readOrders, readOrderBySession, readWallet } from "@/lib/nlo/wallet";
-import { COIN_PACKS } from "@/lib/nlo/content";
+import { BOUNTY_MAX, BOUNTY_MIN, COIN_PACKS } from "@/lib/nlo/content";
+import { dropBounty as dropFundedBounty, fundBounty, listBounties } from "@/lib/nlo/bounties";
 import { createCoinCheckout, fulfillStripeSession, readCheckoutSession, stripeConfigured, stripeLive, webhookConfigured } from "@/lib/nlo/stripe";
 import { getWorldSnapshot, type SeenPlayer, type WorldSnapshot } from "@/lib/nlo/live";
 import {
@@ -20,16 +21,7 @@ import { resolveMinecraftIdentity, type SeenName } from "@/lib/nlo/ign-identity"
 export type { LiveStatus, SeenPlayer, WorldSnapshot } from "@/lib/nlo/live";
 export type { OrderRow, PaidPackResult, Wallet } from "@/lib/nlo/wallet";
 export type { GrantDesk, GrantRow } from "@/lib/nlo/grant-shared";
-
-export type BountyRow = {
-  id: number;
-  target_ign: string;
-  posted_by: string;
-  reward: number;
-  reason: string;
-  status: string;
-  posted_at: string;
-};
+export type { BountyRow } from "@/lib/nlo/bounties";
 
 export type IntelRow = {
   id: number;
@@ -112,16 +104,7 @@ export const getClaimableNames = createServerFn({ method: "GET" }).handler(async
 });
 
 export const getBounties = createServerFn({ method: "GET" }).handler(async () => {
-  try {
-    const sql = await getSql();
-    return await sql<BountyRow>`
-      select id, target_ign, posted_by, reward, reason, status, posted_at::text as posted_at
-      from nlo_bounties
-      order by case when status = 'open' then 0 else 1 end, reward desc, id desc
-    `;
-  } catch {
-    return [];
-  }
+  return listBounties();
 });
 
 export const getIntel = createServerFn({ method: "GET" }).handler(async () => {
@@ -203,23 +186,29 @@ export const postBounty = createServerFn({ method: "POST" })
     z
       .object({
         target: ignSchema,
-        reward: z.number().int().min(500).max(100000),
+        reward: z.number().int().min(BOUNTY_MIN).max(BOUNTY_MAX),
         reason: z.string().trim().min(8).max(180),
       })
       .parse(input),
   )
   .handler(async ({ context, data }) => {
-    const sql = await getSql();
-    const claim = await sql<{ ign: string }>`
-      select ign from nlo_claims where user_id = ${context.userId} limit 1
-    `;
-    const postedBy = claim[0]?.ign ?? "Unsigned";
-    const rows = await sql<BountyRow>`
-      insert into nlo_bounties (target_ign, posted_by, reward, reason, status)
-      values (${data.target}, ${postedBy}, ${data.reward}, ${data.reason}, 'open')
-      returning id, target_ign, posted_by, reward, reason, status, posted_at::text as posted_at
-    `;
-    return rows[0];
+    const snap = await getWorldSnapshot();
+    const { players, onlineNames } = snapshotPlayers(snap);
+    return fundBounty({
+      userId: context.userId,
+      target: data.target,
+      reward: data.reward,
+      reason: data.reason,
+      players,
+      onlineNames,
+    });
+  });
+
+export const dropBounty = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((id: number) => z.number().int().positive().parse(id))
+  .handler(async ({ context, data }) => {
+    return dropFundedBounty(context.userId, data);
   });
 
 export const getWallet = createServerFn({ method: "GET" })

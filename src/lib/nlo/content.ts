@@ -189,13 +189,16 @@ export const PRIZES = [
 export const SEASON_LEAD =
   "Top player takes $50. Top builder takes $20. Same choices: NLO coins, Minecoins, skin, cloak, or Amazon gift card. Top clan pays 25,000 coins to every member.";
 
+export const BOUNTY_MIN = 500;
+export const BOUNTY_MAX = 100_000;
+
 export const COIN_PACKS = [
   {
     id: "pebble",
     name: "Pebble",
     coins: 1_000,
     usd: 1,
-    blurb: "Enough for a stall fee or a small bounty bump.",
+    blurb: "Funds one hunt on the board.",
   },
   {
     id: "stack",
