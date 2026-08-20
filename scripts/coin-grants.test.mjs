@@ -91,6 +91,22 @@ test("Stripe webhook HMAC matches Stripe's signed payload", () => {
   );
 });
 
+test("shop credit is up to date only when ledger after matches or balance moved", () => {
+  function credited(before, after, amount) {
+    return before >= 0 && after >= 0 && amount > 0 && after - before >= amount;
+  }
+  function upToDate(snap, coins) {
+    const moved = credited(snap.before, snap.after, coins);
+    if (snap.ledgerId == null) return moved;
+    if (snap.ledgerAfter != null && snap.after >= 0 && snap.after === snap.ledgerAfter) return true;
+    return moved;
+  }
+  assert.equal(upToDate({ before: 1000, after: 2000, ledgerId: 71, ledgerAfter: 2000 }, 1000), true);
+  assert.equal(upToDate({ before: 1000, after: 1000, ledgerId: 71, ledgerAfter: 2000 }, 1000), false);
+  assert.equal(upToDate({ before: 1000, after: 2000, ledgerId: null, ledgerAfter: null }, 1000), true);
+  assert.equal(upToDate({ before: 1000, after: 1000, ledgerId: null, ledgerAfter: null }, 1000), false);
+});
+
 test("RCON shop grant command targets NLOP, not eco give", () => {
   const command = `season admin balance Steve add 1000 nlo-shop-12`;
   assert.equal(command, "season admin balance Steve add 1000 nlo-shop-12");

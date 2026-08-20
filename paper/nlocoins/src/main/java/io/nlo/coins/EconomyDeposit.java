@@ -14,6 +14,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 final class EconomyDeposit {
+    static final long SETTLE_MS = 4_000L;
+    static final long SETTLE_STEP_MS = 50L;
+
     private final NLOCoinPlugin plugin;
     private final Path gameplayDb;
 
@@ -22,30 +25,103 @@ final class EconomyDeposit {
         this.gameplayDb = gameplayDb;
     }
 
+    record Settlement(long before, long after, Long ledgerId, Long ledgerAfter, boolean confirmed) {
+        String summary(GrantModels.Grant grant, Player player) {
+            return "grant=" + grant.id()
+                    + " ign=" + player.getName()
+                    + " uuid=" + player.getUniqueId()
+                    + " coins=" + grant.coins()
+                    + " before=" + before
+                    + " after=" + after
+                    + " expected=" + expectedAfter(before, grant.coins())
+                    + " ledger=" + (ledgerId == null ? "none" : ledgerId)
+                    + " ledgerAfter=" + (ledgerAfter == null ? "none" : ledgerAfter)
+                    + " confirmed=" + confirmed;
+        }
+    }
+
     boolean alreadyApplied(UUID playerId, long grantId, long coins) {
         return ledgerHit(playerId, grantId, coins) != null;
     }
 
-    boolean deposit(Player player, GrantModels.Grant grant) {
+    long balanceOf(UUID playerId) {
+        return balance(playerId);
+    }
+
+    boolean apply(Player player, GrantModels.Grant grant) {
         UUID playerId = player.getUniqueId();
         if (alreadyApplied(playerId, grant.id(), grant.coins())) {
             return true;
         }
         if (nlopAvailable()) {
-            long before = balance(playerId);
             String command = "season admin balance " + player.getName() + " add " + grant.coins()
                     + " " + reason(grant.id());
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
-            return alreadyApplied(playerId, grant.id(), grant.coins())
-                    || credited(before, balance(playerId), grant.coins());
+            plugin.getLogger().info("Shop credit command " + command);
+            return Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
         }
         if (vaultDeposit(player, grant.coins())) {
+            plugin.getLogger().warning("Shop grant " + grant.id() + " used Vault; NLOP was not available.");
             return true;
         }
         if (essentialsGive(player.getName(), grant.coins())) {
+            plugin.getLogger().warning("Shop grant " + grant.id() + " used Essentials eco; NLOP was not available.");
             return true;
         }
-        return alreadyApplied(playerId, grant.id(), grant.coins());
+        return false;
+    }
+
+    Settlement awaitConfirmed(Player player, GrantModels.Grant grant, long before) {
+        UUID playerId = player.getUniqueId();
+        long deadline = System.currentTimeMillis() + SETTLE_MS;
+        Settlement last = snapshot(playerId, grant.id(), grant.coins(), before);
+        while (!upToDate(last, grant.coins()) && System.currentTimeMillis() < deadline) {
+            sleepQuietly(SETTLE_STEP_MS);
+            last = snapshot(playerId, grant.id(), grant.coins(), before);
+        }
+        boolean confirmed = upToDate(last, grant.coins());
+        Settlement result = new Settlement(before, last.after, last.ledgerId, last.ledgerAfter, confirmed);
+        if (confirmed) {
+            plugin.getLogger().info("Shop credit settled " + result.summary(grant, player));
+        } else {
+            plugin.getLogger().warning("Shop credit NOT settled " + result.summary(grant, player));
+        }
+        return result;
+    }
+
+    static long expectedAfter(long before, long coins) {
+        if (before < 0L || coins < 0L) {
+            return -1L;
+        }
+        return before + coins;
+    }
+
+    static boolean credited(long before, long after, long amount) {
+        return before >= 0L && after >= 0L && amount > 0L && after - before >= amount;
+    }
+
+    static boolean upToDate(Settlement snap, long coins) {
+        if (snap == null || coins <= 0L) {
+            return false;
+        }
+        boolean moved = credited(snap.before, snap.after, coins);
+        if (snap.ledgerId == null) {
+            return moved;
+        }
+        if (snap.ledgerAfter != null && snap.after >= 0L && snap.after == snap.ledgerAfter) {
+            return true;
+        }
+        return moved;
+    }
+
+    private Settlement snapshot(UUID playerId, long grantId, long coins, long before) {
+        LedgerRow row = ledgerHit(playerId, grantId, coins);
+        long after = balance(playerId);
+        return new Settlement(
+                before,
+                after,
+                row == null ? null : row.id,
+                row == null ? null : row.balanceAfter,
+                false);
     }
 
     private boolean nlopAvailable() {
@@ -90,10 +166,6 @@ final class EconomyDeposit {
                 "eco give " + playerName + " " + coins);
     }
 
-    static boolean credited(long before, long after, long amount) {
-        return before >= 0L && after >= 0L && amount > 0L && after - before >= amount;
-    }
-
     private long balance(UUID playerId) {
         try {
             Class.forName("org.sqlite.JDBC");
@@ -106,26 +178,31 @@ final class EconomyDeposit {
                 }
             }
         } catch (Exception failure) {
+            plugin.getLogger().log(Level.WARNING, "Could not read NLOP balance for " + playerId, failure);
             return -1L;
         }
     }
 
-    private Long ledgerHit(UUID playerId, long grantId, long coins) {
+    private LedgerRow ledgerHit(UUID playerId, long grantId, long coins) {
         String reason = reason(grantId);
         try {
             Class.forName("org.sqlite.JDBC");
             try (Connection connection = DriverManager.getConnection(jdbcUrl());
                     PreparedStatement query = connection.prepareStatement(
-                            "SELECT id FROM ledger_entries WHERE account_uuid=? AND type='ADMIN_ADJUSTMENT'"
+                            "SELECT id, balance_after FROM ledger_entries WHERE account_uuid=? AND type='ADMIN_ADJUSTMENT'"
                                     + " AND delta=? AND lower(reference)=? ORDER BY id DESC LIMIT 1")) {
                 query.setString(1, playerId.toString());
                 query.setLong(2, coins);
                 query.setString(3, reason);
                 try (ResultSet rows = query.executeQuery()) {
-                    return rows.next() ? rows.getLong(1) : null;
+                    if (!rows.next()) {
+                        return null;
+                    }
+                    return new LedgerRow(rows.getLong(1), rows.getLong(2));
                 }
             }
         } catch (Exception failure) {
+            plugin.getLogger().log(Level.WARNING, "Could not read NLOP ledger for grant " + grantId, failure);
             return null;
         }
     }
@@ -138,4 +215,14 @@ final class EconomyDeposit {
     static String reason(long grantId) {
         return ("nlo-shop-" + grantId).toLowerCase(Locale.ROOT);
     }
+
+    private static void sleepQuietly(long ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private record LedgerRow(long id, long balanceAfter) {}
 }

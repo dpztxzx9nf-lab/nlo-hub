@@ -39,8 +39,25 @@ final class GrantClient {
     }
 
     boolean delivered(long id, String ign) throws Exception {
-        int status = post(id + "/delivered", "{\"ign\":\"" + jsonEscape(ign) + "\"}");
-        return status == 200;
+        return delivered(id, ign, null);
+    }
+
+    boolean delivered(long id, String ign, EconomyDeposit.Settlement settled) throws Exception {
+        StringBuilder body = new StringBuilder();
+        body.append("{\"ign\":\"").append(jsonEscape(ign)).append('"');
+        if (settled != null) {
+            body.append(",\"before\":").append(settled.before());
+            body.append(",\"after\":").append(settled.after());
+            if (settled.ledgerId() != null) {
+                body.append(",\"ledgerId\":").append(settled.ledgerId());
+            }
+            if (settled.ledgerAfter() != null) {
+                body.append(",\"ledgerAfter\":").append(settled.ledgerAfter());
+            }
+            body.append(",\"confirmed\":").append(settled.confirmed());
+        }
+        body.append('}');
+        return post(id + "/delivered", body.toString()) == 200;
     }
 
     void release(long id) {

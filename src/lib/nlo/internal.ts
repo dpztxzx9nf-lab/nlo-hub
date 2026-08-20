@@ -54,14 +54,41 @@ export async function handleMarkDelivered(request: Request, id: number): Promise
   if (!authorizeInternal(request)) return unauthorizedInternal();
   if (!Number.isInteger(id) || id < 1) return Response.json({ error: "Unknown grant." }, { status: 404 });
   let ign: string | undefined;
+  let before: number | undefined;
+  let after: number | undefined;
+  let ledgerId: number | undefined;
+  let ledgerAfter: number | undefined;
+  let confirmed: boolean | undefined;
   try {
-    const body = (await request.json()) as { ign?: unknown };
+    const body = (await request.json()) as {
+      ign?: unknown;
+      before?: unknown;
+      after?: unknown;
+      ledgerId?: unknown;
+      ledgerAfter?: unknown;
+      confirmed?: unknown;
+    };
     if (typeof body.ign === "string" && body.ign.trim()) ign = body.ign.trim();
+    if (typeof body.before === "number" && Number.isFinite(body.before)) before = body.before;
+    if (typeof body.after === "number" && Number.isFinite(body.after)) after = body.after;
+    if (typeof body.ledgerId === "number" && Number.isFinite(body.ledgerId)) ledgerId = body.ledgerId;
+    if (typeof body.ledgerAfter === "number" && Number.isFinite(body.ledgerAfter)) ledgerAfter = body.ledgerAfter;
+    if (typeof body.confirmed === "boolean") confirmed = body.confirmed;
   } catch {
     ign = undefined;
   }
   const grant = await markGrantDelivered(id, ign);
   if (!grant) return Response.json({ error: "Unknown grant." }, { status: 404 });
+  console.info("nlo-shop delivered", {
+    id: grant.id,
+    ign: grant.ign,
+    coins: grant.coins,
+    before,
+    after,
+    ledgerId,
+    ledgerAfter,
+    confirmed,
+  });
   return Response.json({
     ok: true,
     already: grant.status === "delivered" && Boolean(grant.delivered_at),

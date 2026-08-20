@@ -113,36 +113,45 @@ public final class NLOCoinPlugin extends JavaPlugin implements Listener {
             boolean leased = false;
             boolean handedOff = false;
             try {
+                long before = economy.balanceOf(player.getUniqueId());
                 if (economy.alreadyApplied(player.getUniqueId(), grant.id(), grant.coins())) {
-                    client.delivered(grant.id(), player.getName());
+                    EconomyDeposit.Settlement replay = economy.awaitConfirmed(player, grant, before);
+                    getLogger().info("Shop grant already in ledger " + replay.summary(grant, player));
+                    client.delivered(grant.id(), player.getName(), replay);
                     tell(player, grant);
                     return;
                 }
                 leased = client.claim(grant.id());
                 if (!leased) {
+                    getLogger().info("Shop grant " + grant.id() + " was not leased; another worker has it.");
                     return;
                 }
                 handedOff = true;
                 getServer().getScheduler().runTask(this, () -> {
-                    boolean ok = false;
+                    boolean applied = false;
                     try {
-                        ok = economy.deposit(player, grant);
+                        applied = economy.apply(player, grant);
                     } finally {
-                        boolean delivered = ok;
+                        boolean dispatched = applied;
                         getServer().getScheduler().runTaskAsynchronously(this, () -> {
                             try {
-                                if (delivered) {
-                                    if (client.delivered(grant.id(), player.getName())) {
+                                EconomyDeposit.Settlement settled = economy.awaitConfirmed(player, grant, before);
+                                if (dispatched && settled.confirmed()) {
+                                    if (client.delivered(grant.id(), player.getName(), settled)) {
                                         tell(player, grant);
                                     } else {
+                                        getLogger().warning("Shop grant " + grant.id()
+                                                + " credited in-game but hub mark-delivered failed; releasing.");
                                         client.release(grant.id());
                                     }
                                 } else {
+                                    getLogger().warning("Shop grant " + grant.id()
+                                            + " released; in-game balance was not confirmed.");
                                     client.release(grant.id());
                                 }
                             } catch (Exception failure) {
                                 client.release(grant.id());
-                                getLogger().log(Level.WARNING, "Could not mark grant " + grant.id(), failure);
+                                getLogger().log(Level.WARNING, "Could not finish grant " + grant.id(), failure);
                             } finally {
                                 inFlight.remove(grant.id());
                             }
