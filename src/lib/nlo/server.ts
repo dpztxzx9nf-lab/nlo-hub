@@ -2,17 +2,18 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
-import { readOrders, readWallet } from "@/lib/nlo/wallet";
+import { readOrders, readOrderBySession, readWallet } from "@/lib/nlo/wallet";
 import { COIN_PACKS } from "@/lib/nlo/content";
-import { createCoinCheckout, fulfillStripeSession, stripeConfigured, stripeLive, webhookConfigured } from "@/lib/nlo/stripe";
+import { createCoinCheckout, fulfillStripeSession, readCheckoutSession, stripeConfigured, stripeLive, webhookConfigured } from "@/lib/nlo/stripe";
 import { getWorldSnapshot, type SeenPlayer } from "@/lib/nlo/live";
 import {
   claimedIdentity,
   pluginSeen,
+  readGrantBySession,
   readGrantDesk,
   saveVerifiedClaim,
 } from "@/lib/nlo/grants";
-import { emptyGrantDesk, isValidIgn, type GrantDesk } from "@/lib/nlo/grant-shared";
+import { emptyGrantDesk, isValidIgn, type GrantDesk, type GrantStatus } from "@/lib/nlo/grant-shared";
 import { resolveMinecraftIdentity } from "@/lib/nlo/ign-identity";
 
 export type { LiveStatus, SeenPlayer, WorldSnapshot } from "@/lib/nlo/live";
@@ -256,6 +257,116 @@ export const fulfillCheckout = createServerFn({ method: "POST" })
   .validator((sessionId: string) => z.string().min(8).max(200).parse(sessionId))
   .handler(async ({ context, data: sessionId }) => {
     return fulfillStripeSession(sessionId, context.userId);
+  });
+
+export type PaidReceipt = {
+  sessionId: string;
+  paid: boolean;
+  pending: boolean;
+  packId: string | null;
+  packName: string | null;
+  coins: number;
+  usd: number;
+  already: boolean;
+  signedIn: boolean;
+  claimedIgn: string | null;
+  grantStatus: GrantStatus | null;
+  plugin: boolean;
+  error: string | null;
+};
+
+function emptyReceipt(sessionId: string, partial: Partial<PaidReceipt> = {}): PaidReceipt {
+  return {
+    sessionId,
+    paid: false,
+    pending: false,
+    packId: null,
+    packName: null,
+    coins: 0,
+    usd: 0,
+    already: false,
+    signedIn: false,
+    claimedIgn: null,
+    grantStatus: null,
+    plugin: pluginSeen(),
+    error: null,
+    ...partial,
+  };
+}
+
+function packFromId(packId: string | null | undefined) {
+  if (!packId) return null;
+  return COIN_PACKS.find((p) => p.id === packId) ?? null;
+}
+
+export const getPaidReceipt = createServerFn({ method: "GET" })
+  .validator((sessionId: string) => z.string().min(8).max(200).parse(sessionId))
+  .handler(async ({ data: sessionId }): Promise<PaidReceipt> => {
+    const { getSessionUser } = await import("@/lib/auth/verify.server");
+    const user = await getSessionUser();
+    const signedIn = Boolean(user);
+
+    let checkout: Awaited<ReturnType<typeof readCheckoutSession>> | null = null;
+    try {
+      checkout = await readCheckoutSession(sessionId);
+    } catch {
+      checkout = null;
+    }
+
+    const order = await readOrderBySession(sessionId).catch(() => null);
+    let grant = await readGrantBySession(sessionId).catch(() => null);
+    const pack = packFromId(checkout?.packId ?? order?.pack_id ?? null);
+
+    let claimedIgn: string | null = null;
+    if (user) {
+      const identity = await claimedIdentity(user.id).catch(() => null);
+      claimedIgn = identity?.ign ?? null;
+    }
+    if (!claimedIgn) claimedIgn = grant?.ign ?? checkout?.ign ?? null;
+
+    const ownerId = checkout?.userId ?? grant?.user_id ?? null;
+    const isOwner = Boolean(user && ownerId && user.id === ownerId);
+    let already = Boolean(order);
+    let paid = Boolean(checkout?.paid || order);
+    let pending = Boolean(checkout && !checkout.paid && !order);
+
+    if (user && isOwner && paid && checkout) {
+      try {
+        const result = await fulfillStripeSession(sessionId, user.id);
+        already = result.already;
+        grant = result.grant;
+        paid = true;
+        pending = false;
+        if (result.grant.ign) claimedIgn = result.grant.ign;
+      } catch {
+        // Webhook may already have credited the desk; keep showing the receipt.
+      }
+    }
+
+    if (!checkout && !order) {
+      return emptyReceipt(sessionId, {
+        signedIn,
+        claimedIgn,
+        plugin: pluginSeen(),
+        error: "Could not find that checkout. If you were charged, refresh — Stripe may still be confirming.",
+      });
+    }
+
+    return {
+      sessionId,
+      paid,
+      pending,
+      packId: pack?.id ?? checkout?.packId ?? order?.pack_id ?? null,
+      packName: pack?.name ?? null,
+      coins: pack?.coins ?? Number(order?.coins ?? grant?.coins ?? 0),
+      usd: pack?.usd ?? Number(order?.usd ?? 0),
+      already,
+      signedIn,
+      claimedIgn,
+      grantStatus: grant?.status ?? (paid ? "pending" : null),
+      plugin: pluginSeen(),
+      error: pending ? "Payment is still confirming. This page will catch up." : null,
+    };
   });
 
 export const getGrantDesk = createServerFn({ method: "GET" })

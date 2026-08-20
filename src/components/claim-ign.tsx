@@ -42,6 +42,7 @@ export function ClaimIgnForm({
     <div>
       <form
         className="mt-4 flex flex-col gap-3 sm:flex-row"
+        autoComplete="off"
         onSubmit={(e) => {
           e.preventDefault();
           void submit(ign);
@@ -50,10 +51,18 @@ export function ClaimIgnForm({
         <Input
           value={ign}
           onChange={(e) => setIgn(e.target.value)}
-          placeholder="The name you join nlo.gg with"
+          placeholder="Minecraft username (not your real name)"
           required
+          type="text"
+          name="nlo-minecraft-ign"
           autoComplete="off"
+          autoCapitalize="none"
+          autoCorrect="off"
           spellCheck={false}
+          inputMode="text"
+          data-1p-ignore="true"
+          data-lpignore="true"
+          data-form-type="other"
         />
         <Button type="submit" disabled={busy}>
           {busy ? "Verifying…" : "Verify IGN"}

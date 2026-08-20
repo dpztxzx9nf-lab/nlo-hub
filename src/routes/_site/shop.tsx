@@ -9,7 +9,6 @@ import { COIN_PACKS } from "@/lib/nlo/content";
 import { ClaimIgnForm } from "@/components/claim-ign";
 import { CoinDeliveryPanel } from "@/components/coin-delivery";
 import {
-  fulfillCheckout,
   getClaimableNames,
   getGrantDesk,
   getOrders,
@@ -20,7 +19,7 @@ import {
   type GrantDesk,
   type OrderRow,
 } from "@/lib/nlo/server";
-import { deliveryToast, emptyGrantDesk } from "@/lib/nlo/grant-shared";
+import { emptyGrantDesk } from "@/lib/nlo/grant-shared";
 import { formatInt, formatWhen } from "@/lib/utils";
 
 const siteRoute = getRouteApi("/_site");
@@ -46,14 +45,16 @@ function ShopPage() {
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<(typeof COIN_PACKS)[number] | null>(null);
-  const [paidId, setPaidId] = useState<string | null>(null);
   const [canceled, setCanceled] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const q = new URLSearchParams(window.location.search);
     const paid = q.get("paid");
-    if (paid) setPaidId(paid);
+    if (paid && paid.startsWith("cs_")) {
+      window.location.replace(`/receipt?paid=${encodeURIComponent(paid)}`);
+      return;
+    }
     if (q.get("cancel") === "1") setCanceled(true);
   }, []);
 
@@ -80,45 +81,6 @@ function ShopPage() {
       cancelled = true;
     };
   }, [isPending, user]);
-
-  useEffect(() => {
-    if (!user || !paidId) return;
-    let cancelled = false;
-    setBusy("paid");
-    void fulfillCheckout({ data: paidId })
-      .then((res) => {
-        if (cancelled) return;
-        setCoins(res.wallet.coins);
-        setOrders((prev) => {
-          const next = [res.order, ...prev.filter((o) => o.id !== res.order.id)];
-          return next.slice(0, 20);
-        });
-        setDesk((prev) => {
-          const grant = res.grant;
-          const grants = [grant, ...prev.grants.filter((g) => g.id !== grant.id)].slice(0, 20);
-          const open = grants.filter((g) => g.status === "pending" || g.status === "delivering");
-          const done = grants.filter((g) => g.status === "delivered");
-          return {
-            claimedIgn: grant.ign ?? prev.claimedIgn,
-            claimedUuid: prev.claimedUuid,
-            pendingCoins: open.reduce((sum, g) => sum + g.coins, 0),
-            pendingCount: open.length,
-            deliveredCoins: done.reduce((sum, g) => sum + g.coins, 0),
-            grants,
-          };
-        });
-        toast.success(res.already ? "That pack is already on this desk." : deliveryToast(res.grant));
-      })
-      .catch((err) => {
-        if (!cancelled) toast.error(err instanceof Error ? err.message : "Could not confirm payment");
-      })
-      .finally(() => {
-        if (!cancelled) setBusy(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [user, paidId]);
 
   useEffect(() => {
     if (canceled) toast.message("Checkout canceled. No charge.");

@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PageFrame, Panel } from "@/components/page-frame";
@@ -11,10 +11,31 @@ export const Route = createFileRoute("/_site/login")({
   component: LoginPage,
 });
 
+function safeNext(raw: string | null | undefined): string {
+  if (!raw) return "/account";
+  if (!raw.startsWith("/") || raw.startsWith("//") || raw.includes("://")) return "/account";
+  try {
+    const url = new URL(raw, "https://nlo.gg");
+    if (url.origin !== "https://nlo.gg") return "/account";
+    const allowed = new Set(["/", "/receipt", "/shop", "/account", "/play", "/login"]);
+    if (!allowed.has(url.pathname)) return "/account";
+    return `${url.pathname}${url.search}`;
+  } catch {
+    return "/account";
+  }
+}
+
+function nextFromWindow(): string {
+  if (typeof window === "undefined") return "/account";
+  return safeNext(new URLSearchParams(window.location.search).get("next"));
+}
+
 function LoginPage() {
   const [mode, setMode] = useState<"in" | "up">("in");
+  const [next, setNext] = useState("/account");
 
   useEffect(() => {
+    setNext(nextFromWindow());
     if (typeof window === "undefined") return;
     const q = new URLSearchParams(window.location.search);
     const err = q.get("error");
@@ -41,7 +62,7 @@ function LoginPage() {
                 type="button"
                 variant={p.idp === "google" ? "default" : "stone"}
                 onClick={() =>
-                  signIn(p.providerId, { callbackURL: "/account", errorCallbackURL: "/login" })
+                  signIn(p.providerId, { callbackURL: next, errorCallbackURL: "/login" })
                 }
               >
                 Continue with {p.label}
@@ -50,7 +71,7 @@ function LoginPage() {
             <p className="py-1 text-center font-mono text-xs tracking-widest text-muted uppercase">
               or email
             </p>
-            {mode === "in" ? <SignInForm /> : <SignUpForm onDone={() => setMode("in")} />}
+            {mode === "in" ? <SignInForm next={next} /> : <SignUpForm next={next} onDone={() => setMode("in")} />}
             <button
               type="button"
               className="text-sm text-muted underline-offset-4 hover:text-foreground hover:underline"
@@ -72,8 +93,7 @@ function LoginPage() {
   );
 }
 
-function SignInForm() {
-  const navigate = useNavigate();
+function SignInForm({ next }: { next: string }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -92,7 +112,7 @@ function SignInForm() {
       }
       await authClient.getSession();
       toast.success("Signed in");
-      await navigate({ to: "/account" });
+      window.location.assign(next);
     } catch {
       toast.error("Email or password is wrong.");
     } finally {
@@ -128,8 +148,7 @@ function SignInForm() {
   );
 }
 
-function SignUpForm({ onDone }: { onDone: () => void }) {
-  const navigate = useNavigate();
+function SignUpForm({ next, onDone }: { next: string; onDone: () => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -164,7 +183,7 @@ function SignUpForm({ onDone }: { onDone: () => void }) {
       }
       await authClient.getSession();
       toast.success("Account created");
-      await navigate({ to: "/account" });
+      window.location.assign(next);
     } catch {
       toast.error("Could not create that account.");
     } finally {

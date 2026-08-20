@@ -66,7 +66,7 @@ export async function createCoinCheckout(input: {
     "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][unit_amount]": String(input.usd * 100),
     "line_items[0][price_data][product_data][name]": product,
-    success_url: `${input.origin}/shop?paid={CHECKOUT_SESSION_ID}`,
+    success_url: `${input.origin}/receipt?paid={CHECKOUT_SESSION_ID}`,
     cancel_url: `${input.origin}/shop?cancel=1`,
     client_reference_id: input.userId,
     "metadata[userId]": input.userId,
@@ -90,6 +90,27 @@ export async function fulfillStripeSession(sessionId: string, userId: string) {
   const packId = meta.packId;
   if (!packId) throw new Error("Checkout is missing a pack.");
   return grantPaidPack(userId, packId, sessionId);
+}
+
+export type CheckoutView = {
+  id: string;
+  paid: boolean;
+  userId: string | null;
+  packId: string | null;
+  ign: string | null;
+};
+
+export async function readCheckoutSession(sessionId: string): Promise<CheckoutView> {
+  if (!sessionId.startsWith("cs_")) throw new Error("Invalid checkout.");
+  const session = await stripeGet(`checkout/sessions/${encodeURIComponent(sessionId)}`);
+  const meta = (session.metadata ?? {}) as { userId?: string; packId?: string; ign?: string };
+  return {
+    id: typeof session.id === "string" ? session.id : sessionId,
+    paid: session.payment_status === "paid" || session.status === "complete",
+    userId: meta.userId || null,
+    packId: meta.packId || null,
+    ign: meta.ign || null,
+  };
 }
 
 export function webhookSecret() {

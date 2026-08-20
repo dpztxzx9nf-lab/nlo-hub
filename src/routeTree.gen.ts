@@ -20,6 +20,7 @@ import { Route as SitePlayRouteImport } from './routes/_site/play'
 import { Route as SiteRosterRouteImport } from './routes/_site/roster'
 import { Route as SiteRulesRouteImport } from './routes/_site/rules'
 import { Route as SiteSeasonRouteImport } from './routes/_site/season'
+import { Route as SiteReceiptRouteImport } from './routes/_site/receipt'
 import { Route as SiteShopRouteImport } from './routes/_site/shop'
 import { Route as SiteWorldRouteImport } from './routes/_site/world'
 import { Route as ApiLiveRouteImport } from './routes/api/live'
@@ -84,6 +85,11 @@ const SiteRulesRoute = SiteRulesRouteImport.update({
 const SiteSeasonRoute = SiteSeasonRouteImport.update({
   id: '/season',
   path: '/season',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteReceiptRoute = SiteReceiptRouteImport.update({
+  id: '/receipt',
+  path: '/receipt',
   getParentRoute: () => SiteRoute,
 } as any)
 const SiteShopRoute = SiteShopRouteImport.update({
@@ -155,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof SiteLoginRoute
   '/play': typeof SitePlayRoute
   '/roster': typeof SiteRosterRouteWithChildren
+  '/receipt': typeof SiteReceiptRoute
   '/rules': typeof SiteRulesRoute
   '/season': typeof SiteSeasonRoute
   '/shop': typeof SiteShopRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByTo {
   '/login': typeof SiteLoginRoute
   '/play': typeof SitePlayRoute
   '/roster': typeof SiteRosterRouteWithChildren
+  '/receipt': typeof SiteReceiptRoute
   '/rules': typeof SiteRulesRoute
   '/season': typeof SiteSeasonRoute
   '/shop': typeof SiteShopRoute
@@ -201,6 +209,7 @@ export interface FileRoutesById {
   '/_site/intel': typeof SiteIntelRoute
   '/_site/login': typeof SiteLoginRoute
   '/_site/play': typeof SitePlayRoute
+  '/_site/receipt': typeof SiteReceiptRoute
   '/_site/roster': typeof SiteRosterRouteWithChildren
   '/_site/rules': typeof SiteRulesRoute
   '/_site/season': typeof SiteSeasonRoute
@@ -227,6 +236,7 @@ export interface FileRouteTypes {
     | '/intel'
     | '/login'
     | '/play'
+    | '/receipt'
     | '/roster'
     | '/rules'
     | '/season'
@@ -249,6 +259,7 @@ export interface FileRouteTypes {
     | '/intel'
     | '/login'
     | '/play'
+    | '/receipt'
     | '/roster'
     | '/rules'
     | '/season'
@@ -273,6 +284,7 @@ export interface FileRouteTypes {
     | '/_site/intel'
     | '/_site/login'
     | '/_site/play'
+    | '/_site/receipt'
     | '/_site/roster'
     | '/_site/rules'
     | '/_site/season'
@@ -381,6 +393,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SiteSeasonRouteImport
       parentRoute: typeof SiteRoute
     }
+    '/_site/receipt': {
+      id: '/_site/receipt'
+      path: '/receipt'
+      fullPath: '/receipt'
+      preLoaderRoute: typeof SiteReceiptRouteImport
+      parentRoute: typeof SiteRoute
+    }
     '/_site/shop': {
       id: '/_site/shop'
       path: '/shop'
@@ -480,6 +499,7 @@ interface SiteRouteChildren {
   SiteIntelRoute: typeof SiteIntelRoute
   SiteLoginRoute: typeof SiteLoginRoute
   SitePlayRoute: typeof SitePlayRoute
+  SiteReceiptRoute: typeof SiteReceiptRoute
   SiteRosterRoute: typeof SiteRosterRouteWithChildren
   SiteRulesRoute: typeof SiteRulesRoute
   SiteSeasonRoute: typeof SiteSeasonRoute
@@ -495,6 +515,7 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteIntelRoute: SiteIntelRoute,
   SiteLoginRoute: SiteLoginRoute,
   SitePlayRoute: SitePlayRoute,
+  SiteReceiptRoute: SiteReceiptRoute,
   SiteRosterRoute: SiteRosterRouteWithChildren,
   SiteRulesRoute: SiteRulesRoute,
   SiteSeasonRoute: SiteSeasonRoute,

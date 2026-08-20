@@ -205,6 +205,22 @@ async function claimedIgn(userId: string): Promise<string | null> {
 
 export { claimedIdentity };
 
+export async function readGrantBySession(sessionId: string): Promise<GrantRow | null> {
+  if (!sessionId.startsWith("cs_")) return null;
+  await ensureGrantTables();
+  const sql = await getSql();
+  const rows = await sql<GrantRow>`
+    select id, user_id, ign, coins, stripe_session_id, status,
+           created_at::text as created_at,
+           delivered_at::text as delivered_at,
+           attempted_at::text as attempted_at
+    from nlo_coin_grants
+    where stripe_session_id = ${sessionId}
+    limit 1
+  `;
+  return rows[0] ? normalizeGrant(rows[0]) : null;
+}
+
 export async function enqueuePaidGrant(input: {
   userId: string;
   coins: number;

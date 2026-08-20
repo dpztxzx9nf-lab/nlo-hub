@@ -77,6 +77,19 @@ export async function readOrders(userId: string): Promise<OrderRow[]> {
   }));
 }
 
+export async function readOrderBySession(sessionId: string): Promise<OrderRow | null> {
+  if (!sessionId.startsWith("cs_")) return null;
+  await ensureWalletTables();
+  const sql = await getSql();
+  const rows = await sql<OrderRow>`
+    select id, pack_id, coins, usd, status, created_at::text as created_at
+    from nlo_orders
+    where stripe_session_id = ${sessionId}
+    limit 1
+  `;
+  return rows[0] ? normalizeOrder(rows[0]) : null;
+}
+
 export async function grantPaidPack(userId: string, packId: string, stripeSessionId: string) {
   const pack = packById(packId);
   if (!pack) throw new Error("Unknown pack.");
