@@ -5,16 +5,17 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { readOrders, readOrderBySession, readWallet } from "@/lib/nlo/wallet";
 import { COIN_PACKS } from "@/lib/nlo/content";
 import { createCoinCheckout, fulfillStripeSession, readCheckoutSession, stripeConfigured, stripeLive, webhookConfigured } from "@/lib/nlo/stripe";
-import { getWorldSnapshot, type SeenPlayer } from "@/lib/nlo/live";
+import { getWorldSnapshot, type SeenPlayer, type WorldSnapshot } from "@/lib/nlo/live";
 import {
   claimedIdentity,
+  claimIgnAvailable,
   pluginSeen,
   readGrantBySession,
   readGrantDesk,
   saveVerifiedClaim,
 } from "@/lib/nlo/grants";
 import { emptyGrantDesk, isValidIgn, type GrantDesk, type GrantStatus } from "@/lib/nlo/grant-shared";
-import { resolveMinecraftIdentity } from "@/lib/nlo/ign-identity";
+import { resolveMinecraftIdentity, type SeenName } from "@/lib/nlo/ign-identity";
 
 export type { LiveStatus, SeenPlayer, WorldSnapshot } from "@/lib/nlo/live";
 export type { OrderRow, PaidPackResult, Wallet } from "@/lib/nlo/wallet";
@@ -44,10 +45,27 @@ export type ClaimableName = {
   online: boolean;
 };
 
+export type ClaimPreview = {
+  ign: string;
+  uuid: string | null;
+  online: boolean;
+};
+
 const ignSchema = z
   .string()
   .trim()
   .regex(/^[\w.]{1,32}$/, "Use a Minecraft name.");
+
+function snapshotPlayers(snap: WorldSnapshot): { players: SeenName[]; onlineNames: string[] } {
+  const players = [
+    ...snap.onlineNames.map((name) => ({
+      ign: name,
+      uuid: snap.roster.find((row) => row.ign.toLowerCase() === name.toLowerCase())?.uuid ?? null,
+    })),
+    ...snap.roster.map((row) => ({ ign: row.ign, uuid: row.uuid })),
+  ];
+  return { players, onlineNames: snap.onlineNames };
+}
 
 export const getSnapshot = createServerFn({ method: "GET" }).handler(async () => {
   return getWorldSnapshot();
@@ -126,20 +144,31 @@ export const getClaim = createServerFn({ method: "GET" })
     return identity?.ign ?? null;
   });
 
+export const previewClaim = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((ign: string) => ignSchema.parse(ign))
+  .handler(async ({ context, data: ign }): Promise<ClaimPreview> => {
+    if (!isValidIgn(ign)) throw new Error("Use a Minecraft name.");
+    const snap = await getWorldSnapshot();
+    const { players, onlineNames } = snapshotPlayers(snap);
+    const identity = await resolveMinecraftIdentity(ign, players, onlineNames);
+    const available = await claimIgnAvailable(context.userId, identity.ign);
+    if (!available) throw new Error("That IGN is already claimed.");
+    return {
+      ign: identity.ign,
+      uuid: identity.uuid,
+      online: identity.source === "online",
+    };
+  });
+
 export const saveClaim = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((ign: string) => ignSchema.parse(ign))
   .handler(async ({ context, data: ign }) => {
     if (!isValidIgn(ign)) throw new Error("Use a Minecraft name.");
     const snap = await getWorldSnapshot();
-    const players = [
-      ...snap.onlineNames.map((name) => ({
-        ign: name,
-        uuid: snap.roster.find((row) => row.ign.toLowerCase() === name.toLowerCase())?.uuid ?? null,
-      })),
-      ...snap.roster.map((row) => ({ ign: row.ign, uuid: row.uuid })),
-    ];
-    const identity = await resolveMinecraftIdentity(ign, players);
+    const { players, onlineNames } = snapshotPlayers(snap);
+    const identity = await resolveMinecraftIdentity(ign, players, onlineNames);
     return saveVerifiedClaim(context.userId, identity);
   });
 

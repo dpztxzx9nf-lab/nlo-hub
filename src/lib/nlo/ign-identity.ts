@@ -8,7 +8,7 @@ export type SeenName = {
 export type MinecraftIdentity = {
   ign: string;
   uuid: string | null;
-  source: "online" | "seen" | "mojang";
+  source: "online" | "seen";
 };
 
 export function dashedUuid(id: string): string {
@@ -18,15 +18,20 @@ export function dashedUuid(id: string): string {
 }
 
 /** Prefer currently-online names, then the rest of the seen roster. */
-export function pickSeenIdentity(raw: string, players: SeenName[]): MinecraftIdentity | null {
+export function pickSeenIdentity(
+  raw: string,
+  players: SeenName[],
+  onlineNames: string[] = [],
+): MinecraftIdentity | null {
   const key = ignKey(raw);
   if (!key) return null;
   const hit = players.find((player) => ignKey(player.ign) === key);
   if (!hit) return null;
+  const online = onlineNames.some((name) => ignKey(name) === key);
   return {
     ign: hit.ign,
     uuid: hit.uuid,
-    source: "seen",
+    source: online ? "online" : "seen",
   };
 }
 
@@ -49,16 +54,17 @@ export async function lookupMojang(name: string): Promise<{ ign: string; uuid: s
 export async function resolveMinecraftIdentity(
   raw: string,
   players: SeenName[],
+  onlineNames: string[] = [],
 ): Promise<MinecraftIdentity> {
   const trimmed = raw.trim();
   if (!isValidIgn(trimmed)) throw new Error("Use a Minecraft name.");
-  const seen = pickSeenIdentity(trimmed, players);
+  const seen = pickSeenIdentity(trimmed, players, onlineNames);
   if (seen) {
     if (seen.uuid || trimmed.startsWith(".") || seen.ign.startsWith(".")) return seen;
     try {
       const mojang = await lookupMojang(seen.ign);
       if (mojang) {
-        return { ign: seen.ign, uuid: mojang.uuid, source: "seen" };
+        return { ign: seen.ign, uuid: mojang.uuid, source: seen.source };
       }
     } catch {
       /* keep the name the server already reported */
@@ -68,7 +74,5 @@ export async function resolveMinecraftIdentity(
   if (trimmed.startsWith(".")) {
     throw new Error("Join nlo.gg on Bedrock first so we can bind that gamertag.");
   }
-  const mojang = await lookupMojang(trimmed);
-  if (!mojang) throw new Error("That isn't a real Java Minecraft username.");
-  return { ign: mojang.ign, uuid: mojang.uuid, source: "mojang" };
+  throw new Error("Join nlo.gg with that name first so we bind the exact in-game account.");
 }

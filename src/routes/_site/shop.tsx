@@ -111,7 +111,7 @@ function ShopPage() {
         !card
           ? "Pays by card through Stripe once keys are on this desk. After a charge, coins queue for your verified Minecraft IGN."
           : live
-            ? "Pays by card through Stripe. After the charge, coins queue on this desk and deposit in-game once you claim the Minecraft name you join with."
+            ? "Pays by card through Stripe. After the charge, coins queue on this desk and deposit in-game once you confirm the Minecraft name you join with."
             : "Packs are listed. Stripe is in test mode on this desk — no real charges until live keys are on. After a test pay, coins still queue for your claimed IGN."
       }
     >
@@ -143,7 +143,7 @@ function ShopPage() {
               <div className="mt-4 rounded-sm bg-background/35 px-3 py-3">
                 <p className="font-mono text-xs tracking-widest text-accent uppercase">Claim IGN to deliver</p>
                 <p className="mt-2 text-sm text-muted">
-                  You can pay now. Coins sit on this desk until you claim the Minecraft name you join with — then they deposit in-game.
+                  You can pay now. Coins sit on this desk until you confirm the Minecraft name you join with. Join first so we match the exact in-game account.
                 </p>
                 <ClaimIgnForm
                   names={names}
@@ -248,7 +248,7 @@ function ShopPage() {
                   <span className="text-foreground">{desk.claimedIgn}</span> in-game.
                 </>
               ) : (
-                "After Stripe confirms, coins sit on this desk until you claim the Minecraft name you join with."
+                "After Stripe confirms, coins sit on this desk until you confirm the Minecraft name you join with."
               )}{" "}
               {live ? "This is a real charge." : "Stripe test mode — 4242 cards work, no real charge."}
             </p>

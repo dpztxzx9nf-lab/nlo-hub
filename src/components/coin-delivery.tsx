@@ -32,7 +32,7 @@ export function CoinDeliveryPanel({
         <p className="mt-2 text-sm text-muted">
           {formatInt(desk.pendingCoins)} coins are waiting.{" "}
           <Link to="/account" className="text-foreground underline">
-            Claim the Minecraft name you join with
+            Confirm the Minecraft name you join with
           </Link>{" "}
           so coins deposit in-game.
         </p>
@@ -55,7 +55,7 @@ export function CoinDeliveryPanel({
         </p>
       ) : (
         <p className="mt-2 text-sm text-muted">
-          Claim the Minecraft name you join with so coins can be delivered in-game.
+          Confirm the Minecraft name you join with so coins can be delivered in-game.
         </p>
       )}
     </div>

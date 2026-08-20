@@ -173,12 +173,23 @@ function dashedUuid(id) {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
-function pickSeenIdentity(raw, players) {
+function pickSeenIdentity(raw, players, onlineNames = []) {
   const key = ignKey(raw);
   if (!key) return null;
   const hit = players.find((player) => ignKey(player.ign) === key);
   if (!hit) return null;
-  return { ign: hit.ign, uuid: hit.uuid, source: "seen" };
+  const online = onlineNames.some((name) => ignKey(name) === key);
+  return { ign: hit.ign, uuid: hit.uuid, source: online ? "online" : "seen" };
+}
+
+function resolveIdentity(raw, players, onlineNames = []) {
+  const trimmed = String(raw).trim();
+  const seen = pickSeenIdentity(trimmed, players, onlineNames);
+  if (seen) return seen;
+  if (trimmed.startsWith(".")) {
+    throw new Error("Join nlo.gg on Bedrock first so we can bind that gamertag.");
+  }
+  throw new Error("Join nlo.gg with that name first so we bind the exact in-game account.");
 }
 
 test("claim binds to the exact in-game name, including Floodgate dots", () => {
@@ -209,15 +220,11 @@ test("Stripe product name includes the verified IGN when claimed", () => {
   assert.equal(unnamed.includes(" for "), false);
 });
 
-test("Java Mojang names can be claimed before the player has joined", () => {
-  function resolve(raw, players) {
-    const seen = pickSeenIdentity(raw, players);
-    if (seen) return seen;
-    if (String(raw).startsWith(".")) {
-      throw new Error("Join nlo.gg on Bedrock first so we can bind that gamertag.");
-    }
-    return { ign: raw, source: "mojang" };
-  }
-  assert.equal(resolve("Notch", []).source, "mojang");
-  assert.throws(() => resolve(".UnseenBedrock", []), /Bedrock first/);
+test("unseen names cannot be claimed", () => {
+  const players = [{ ign: "Brockoozee", uuid: "7531fe36-556e-4c3a-8408-20577271affd" }];
+  assert.equal(resolveIdentity("Brockoozee", players).source, "seen");
+  assert.equal(resolveIdentity("brockoozee", players, ["Brockoozee"]).source, "online");
+  assert.throws(() => resolveIdentity("Notch", players), /Join nlo.gg with that name first/);
+  assert.throws(() => resolveIdentity(".UnseenBedrock", []), /Bedrock first/);
 });
+

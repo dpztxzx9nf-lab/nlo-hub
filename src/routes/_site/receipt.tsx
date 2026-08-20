@@ -126,7 +126,7 @@ function ReceiptPage() {
           <div className="mt-5 rounded-sm bg-background/35 px-3 py-3">
             <p className="font-mono text-xs tracking-widest text-accent uppercase">Claim IGN to deliver</p>
             <p className="mt-2 text-sm text-muted">
-              Coins sit on this desk until you claim the Minecraft username you join nlo.gg with — not your real name.
+              Coins sit on this desk until you confirm the Minecraft name you join nlo.gg with. Join first — we match the name the live server has seen, not a typed guess.
             </p>
             <ClaimIgnForm
               names={names}

@@ -126,8 +126,8 @@ function AccountPage() {
         <Panel texture="oak">
           <h2 className="text-2xl">Verify IGN</h2>
           <p className="mt-2 text-sm text-muted">
-            Java names must be real Mojang accounts. Bedrock names must already have joined nlo.gg,
-            including the leading dot the server shows.
+            Join nlo.gg first. We bind coins to the exact name the live server reports — you
+            confirm the face before anything queues.
           </p>
           <ClaimIgnForm initial={claimed ?? ""} names={names} onClaimed={onClaimed} />
           {claimed ? (
