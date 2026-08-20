@@ -177,17 +177,31 @@ test("claim binds to the exact in-game name, including Floodgate dots", () => {
   assert.equal(dashedUuid("7531fe36556e4c3a840820577271affd"), "7531fe36-556e-4c3a-8408-20577271affd");
 });
 
-test("checkout refuses packs until a verified IGN is claimed", () => {
+test("checkout can start without a claimed IGN and still names a claimed one", () => {
   function startCheckout(claimedIgn) {
-    if (!claimedIgn) throw new Error("Claim the Minecraft name you join with before buying coins.");
-    return { ign: claimedIgn };
+    return { ign: claimedIgn ?? null };
   }
-  assert.throws(() => startCheckout(null), /Claim the Minecraft name/);
+  assert.deepEqual(startCheckout(null), { ign: null });
   assert.deepEqual(startCheckout("Brockoozee"), { ign: "Brockoozee" });
 });
 
-test("Stripe product name includes the verified IGN", () => {
+test("Stripe product name includes the verified IGN when claimed", () => {
   const ign = "Brockoozee";
-  const name = `${(1000).toLocaleString()} NLO coins for ${ign} — Pebble`;
-  assert.match(name, /for Brockoozee/);
+  const named = `${(1000).toLocaleString()} NLO coins for ${ign} — Pebble`;
+  const unnamed = `${(1000).toLocaleString()} NLO coins — Pebble`;
+  assert.match(named, /for Brockoozee/);
+  assert.equal(unnamed.includes(" for "), false);
+});
+
+test("Java Mojang names can be claimed before the player has joined", () => {
+  function resolve(raw, players) {
+    const seen = pickSeenIdentity(raw, players);
+    if (seen) return seen;
+    if (String(raw).startsWith(".")) {
+      throw new Error("Join nlo.gg on Bedrock first so we can bind that gamertag.");
+    }
+    return { ign: raw, source: "mojang" };
+  }
+  assert.equal(resolve("Notch", []).source, "mojang");
+  assert.throws(() => resolve(".UnseenBedrock", []), /Bedrock first/);
 });

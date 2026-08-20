@@ -235,9 +235,6 @@ export const startCheckout = createServerFn({ method: "POST" })
     const pack = COIN_PACKS.find((p) => p.id === data.packId);
     if (!pack) throw new Error("Unknown pack.");
     const identity = await claimedIdentity(context.userId);
-    if (!identity?.ign) {
-      throw new Error("Claim the Minecraft name you join with before buying coins.");
-    }
     const origin = new URL(data.origin);
     if (origin.protocol !== "https:" && origin.hostname !== "localhost" && origin.hostname !== "127.0.0.1") {
       throw new Error("Checkout needs a secure site.");
@@ -249,8 +246,8 @@ export const startCheckout = createServerFn({ method: "POST" })
       coins: pack.coins,
       usd: pack.usd,
       origin: origin.origin,
-      ign: identity.ign,
-      uuid: identity.uuid,
+      ign: identity?.ign ?? null,
+      uuid: identity?.uuid ?? null,
     });
   });
 

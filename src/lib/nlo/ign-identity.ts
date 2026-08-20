@@ -70,5 +70,5 @@ export async function resolveMinecraftIdentity(
   }
   const mojang = await lookupMojang(trimmed);
   if (!mojang) throw new Error("That isn't a real Java Minecraft username.");
-  throw new Error(`Join nlo.gg as ${mojang.ign} first, then claim that name.`);
+  return { ign: mojang.ign, uuid: mojang.uuid, source: "mojang" };
 }

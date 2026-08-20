@@ -126,8 +126,8 @@ function AccountPage() {
         <Panel texture="oak">
           <h2 className="text-2xl">Verify IGN</h2>
           <p className="mt-2 text-sm text-muted">
-            Java names must be real Mojang accounts that have joined. Bedrock names must already be
-            online or on the roster, including the leading dot.
+            Java names must be real Mojang accounts. Bedrock names must already have joined nlo.gg,
+            including the leading dot the server shows.
           </p>
           <ClaimIgnForm initial={claimed ?? ""} names={names} onClaimed={onClaimed} />
           {claimed ? (

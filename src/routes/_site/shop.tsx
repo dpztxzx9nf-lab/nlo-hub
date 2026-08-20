@@ -129,10 +129,6 @@ function ShopPage() {
       toast.error("Card checkout is not connected yet.");
       return;
     }
-    if (!desk.claimedIgn) {
-      toast.error("Claim the Minecraft name you join with before paying.");
-      return;
-    }
     setBusy(packId);
     try {
       const { url } = await startCheckout({
@@ -153,8 +149,8 @@ function ShopPage() {
         !card
           ? "Pays by card through Stripe once keys are on this desk. After a charge, coins queue for your verified Minecraft IGN."
           : live
-            ? "Pays by card through Stripe. After the charge, coins queue for the verified Minecraft name you join with and deposit into the live NLO economy."
-            : "Packs are listed. Stripe is in test mode on this desk — no real charges until live keys are on. After a test pay, coins still queue for your verified IGN."
+            ? "Pays by card through Stripe. After the charge, coins queue on this desk and deposit in-game once you claim the Minecraft name you join with."
+            : "Packs are listed. Stripe is in test mode on this desk — no real charges until live keys are on. After a test pay, coins still queue for your claimed IGN."
       }
     >
       <Panel texture="oak" className="mb-6">
@@ -183,9 +179,9 @@ function ShopPage() {
             <CoinDeliveryPanel desk={desk} ready={ready} plugin={plugin} />
             {!desk.claimedIgn && ready ? (
               <div className="mt-4 rounded-sm bg-background/35 px-3 py-3">
-                <p className="font-mono text-xs tracking-widest text-accent uppercase">Verify IGN first</p>
+                <p className="font-mono text-xs tracking-widest text-accent uppercase">Claim IGN to deliver</p>
                 <p className="mt-2 text-sm text-muted">
-                  Coins only deposit to a Minecraft name that has joined nlo.gg. Claim that exact name before paying.
+                  You can pay now. Coins sit on this desk until you claim the Minecraft name you join with — then they deposit in-game.
                 </p>
                 <ClaimIgnForm
                   names={names}
@@ -208,7 +204,7 @@ function ShopPage() {
               <p className="font-mono text-xs tracking-widest text-accent uppercase">Shop</p>
               <p className="mt-1 font-display text-4xl">Coin packs</p>
               <p className="mt-1 text-sm text-muted">
-                Sign in, verify the Minecraft name you join with, then pay. Coins land on that in-game account.
+                Sign in to buy a pack. Claim your Minecraft IGN so coins deposit in-game after the charge.
               </p>
             </div>
             <Button asChild>
@@ -234,15 +230,9 @@ function ShopPage() {
                 <Button
                   variant={pack.id === "chest" || pack.id === "netherite" ? "default" : "oak"}
                   disabled={busy !== null}
-                  onClick={() => {
-                    if (!desk.claimedIgn) {
-                      toast.error("Verify the Minecraft name you join with first.");
-                      return;
-                    }
-                    setConfirm(pack);
-                  }}
+                  onClick={() => setConfirm(pack)}
                 >
-                  {desk.claimedIgn ? "Buy" : "Verify IGN"}
+                  Buy
                 </Button>
               ) : (
                 <Button
@@ -296,24 +286,19 @@ function ShopPage() {
                   <span className="text-foreground">{desk.claimedIgn}</span> in-game.
                 </>
               ) : (
-                "Claim the Minecraft name you join with before paying."
+                "After Stripe confirms, coins sit on this desk until you claim the Minecraft name you join with."
               )}{" "}
               {live ? "This is a real charge." : "Stripe test mode — 4242 cards work, no real charge."}
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
-              <Button
-                disabled={busy !== null || !user || !desk.claimedIgn}
-                onClick={() => void payPack(confirm.id)}
-              >
+              <Button disabled={busy !== null || !user} onClick={() => void payPack(confirm.id)}>
                 {busy
                   ? "Opening Stripe…"
                   : !user
                     ? "Signing in…"
-                    : !desk.claimedIgn
-                      ? "Verify IGN first"
-                      : card
-                        ? `Pay $${confirm.usd}`
-                        : "Checkout not connected"}
+                    : card
+                      ? `Pay $${confirm.usd}`
+                      : "Checkout not connected"}
               </Button>
               <Button variant="stone" disabled={busy !== null} onClick={() => setConfirm(null)}>
                 Cancel
