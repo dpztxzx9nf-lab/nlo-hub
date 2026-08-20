@@ -85,6 +85,9 @@ function Header({ status, session }: { status?: LiveStatus; session: SiteSession
               <CopyIp variant="oak" size="sm" />
               <AuthSlot session={session} />
             </div>
+            <div className="md:hidden">
+              <AuthSlot session={session} compact />
+            </div>
             <button
               type="button"
               className="grid size-11 place-items-center rounded-sm tex-stone mc-bevel lg:hidden"
@@ -124,9 +127,16 @@ function Header({ status, session }: { status?: LiveStatus; session: SiteSession
   );
 }
 
-function AuthSlot({ session }: { session: SiteSession }) {
+function AuthSlot({ session, compact }: { session: SiteSession; compact?: boolean }) {
   const { user } = useCurrentUserState();
   if (user) {
+    if (compact) {
+      return (
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/account">Desk</Link>
+        </Button>
+      );
+    }
     return (
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" asChild>

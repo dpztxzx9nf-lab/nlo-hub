@@ -113,13 +113,11 @@ const EMPTY_STATUS: LiveStatus = {
 
 export function useLiveWorld(initial?: LiveStatus): LiveWorld {
   const [world, setWorld] = useState<LiveWorld>(() => {
-    // `latest` is a client-only poller cache. Reading it during SSR reuses a
-    // previous request's count and hydrates as 4/16 vs 3/16.
-    if (typeof window !== "undefined" && latest) return latest;
+    // Always seed from the loader snapshot so SSR HTML matches the first
+    // client paint. The module cache is applied after mount only — reading it
+    // here reused a previous poll (4/16 vs 3/16) and broke hydration.
     if (initial?.checked) {
-      const seeded: LiveWorld = { status: initial, online: [], at: 0 };
-      if (typeof window !== "undefined") latest = seeded;
-      return seeded;
+      return { status: initial, online: [], at: 0 };
     }
     return {
       status: initial ?? EMPTY_STATUS,

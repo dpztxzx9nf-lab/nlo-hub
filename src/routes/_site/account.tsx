@@ -1,11 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PageFrame, Panel } from "@/components/page-frame";
 import { PlayerFace } from "@/components/player-face";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { CoinDeliveryPanel } from "@/components/coin-delivery";
 import { getClaim, getGrantDesk, getPayStatus, getWallet, getWatch, saveClaim, type GrantDesk } from "@/lib/nlo/server";
@@ -13,12 +12,16 @@ import { authClient } from "@/lib/auth/client";
 import { PASSWORD_MIN, passwordIssues } from "@/lib/auth/password";
 import { formatInt } from "@/lib/utils";
 
+const siteRoute = getRouteApi("/_site");
+
 export const Route = createFileRoute("/_site/account")({
   component: AccountPage,
 });
 
 function AccountPage() {
+  const { session } = siteRoute.useLoaderData();
   const { user, isPending } = useCurrentUserState();
+  const signedIn = Boolean(user || session);
   const [ign, setIgn] = useState("");
   const [claimed, setClaimed] = useState<string | null>(null);
   const [watch, setWatch] = useState<string[]>([]);
@@ -56,14 +59,32 @@ function AccountPage() {
     };
   }, [isPending, user]);
 
-  if (isPending) {
+  if (!signedIn) {
+    return (
+      <PageFrame
+        eyebrow="Desk"
+        title="Your desk"
+        lead="Sign in to claim your Minecraft IGN, read the coin ledger, and watch names on the roster."
+      >
+        <Panel texture="oak" className="mx-auto max-w-md">
+          <p className="text-sm text-muted">
+            Shop packs queue for the IGN on this desk and deposit into the live NLO economy.
+          </p>
+          <Button className="mt-4" asChild>
+            <Link to="/login">Sign in</Link>
+          </Button>
+        </Panel>
+      </PageFrame>
+    );
+  }
+
+  if (!user) {
     return (
       <PageFrame eyebrow="Desk" title="Your desk">
         <div className="h-48 animate-pulse rounded-lg bg-foreground/5" />
       </PageFrame>
     );
   }
-  if (!user) return <RedirectToSignIn />;
 
   async function save(e: React.FormEvent) {
     e.preventDefault();

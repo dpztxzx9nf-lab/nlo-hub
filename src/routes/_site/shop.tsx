@@ -145,7 +145,13 @@ function ShopPage() {
     <PageFrame
       eyebrow="Commerce"
       title="Buy coins"
-      lead="Pays by card through Stripe. After the charge, coins queue for your claimed Minecraft IGN and deposit into the live NLO economy."
+      lead={
+        !card
+          ? "Pays by card through Stripe once keys are on this desk. After a charge, coins queue for your claimed Minecraft IGN."
+          : live
+            ? "Pays by card through Stripe. After the charge, coins queue for your claimed Minecraft IGN and deposit into the live NLO economy."
+            : "Packs are listed. Stripe is in test mode on this desk — no real charges until live keys are on. After a test pay, coins still queue for your claimed IGN."
+      }
     >
       <Panel texture="oak" className="mb-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
@@ -156,7 +162,11 @@ function ShopPage() {
             </p>
             <p className="mt-1 text-sm text-muted">
               {!signedIn
-                ? "Sign in to buy a pack. Coins queue for your claimed IGN and land in the live NLO economy."
+                ? !card
+                  ? "Sign in to buy a pack. Coins queue for your claimed IGN and land in the live NLO economy."
+                  : live
+                    ? "Sign in to buy a pack. Coins queue for your claimed IGN and land in the live NLO economy."
+                    : "Sign in to try a pack. Checkout is Stripe test mode — no real money moves yet."
                 : !card
                   ? "Packs are listed. Card checkout turns on when Stripe is connected."
                   : !live

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { ArrowRight, Swords, Trophy, Wallet } from "lucide-react";
 import { CopyIp } from "@/components/copy-ip";
@@ -10,6 +10,8 @@ import { Panel } from "@/components/page-frame";
 import { FEATURES, SERVER } from "@/lib/nlo/content";
 import { getBounties, getSnapshot } from "@/lib/nlo/server";
 import { formatInt, formatWhen } from "@/lib/utils";
+
+const siteRoute = getRouteApi("/_site");
 
 export const Route = createFileRoute("/_site/")({
   loader: async () => {
@@ -26,7 +28,9 @@ export const Route = createFileRoute("/_site/")({
 });
 
 function Home() {
-  const { status, online, recent, openBounties } = Route.useLoaderData();
+  const { status: pageStatus, online, recent, openBounties } = Route.useLoaderData();
+  const { status: siteStatus } = siteRoute.useLoaderData();
+  const status = siteStatus ?? pageStatus;
   const live = useLiveWorld(status);
   const nowOnline =
     live.online.length > 0
