@@ -1,15 +1,25 @@
 import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { ClaimIgnForm } from "@/components/claim-ign";
+import { CoinDeliveryPanel } from "@/components/coin-delivery";
 import { PageFrame, Panel } from "@/components/page-frame";
 import { PlayerFace } from "@/components/player-face";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { CoinDeliveryPanel } from "@/components/coin-delivery";
-import { getClaim, getGrantDesk, getPayStatus, getWallet, getWatch, saveClaim, type GrantDesk } from "@/lib/nlo/server";
 import { authClient } from "@/lib/auth/client";
 import { PASSWORD_MIN, passwordIssues } from "@/lib/auth/password";
+import { emptyGrantDesk } from "@/lib/nlo/grant-shared";
+import {
+  getClaimableNames,
+  getGrantDesk,
+  getPayStatus,
+  getWallet,
+  getWatch,
+  type ClaimableName,
+  type GrantDesk,
+} from "@/lib/nlo/server";
 import { formatInt } from "@/lib/utils";
 
 const siteRoute = getRouteApi("/_site");
@@ -22,32 +32,25 @@ function AccountPage() {
   const { session } = siteRoute.useLoaderData();
   const { user, isPending } = useCurrentUserState();
   const signedIn = Boolean(user || session);
-  const [ign, setIgn] = useState("");
   const [claimed, setClaimed] = useState<string | null>(null);
   const [watch, setWatch] = useState<string[]>([]);
   const [coins, setCoins] = useState(0);
-  const [desk, setDesk] = useState<GrantDesk>({
-    claimedIgn: null,
-    pendingCoins: 0,
-    pendingCount: 0,
-    deliveredCoins: 0,
-    grants: [],
-  });
+  const [desk, setDesk] = useState<GrantDesk>(emptyGrantDesk());
+  const [names, setNames] = useState<ClaimableName[]>([]);
   const [ready, setReady] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [plugin, setPlugin] = useState(false);
 
   useEffect(() => {
     if (isPending || !user) return;
     let cancelled = false;
-    void Promise.all([getClaim(), getWatch(), getWallet(), getGrantDesk(), getPayStatus()])
-      .then(([c, w, wallet, grants, pay]) => {
+    void Promise.all([getWatch(), getWallet(), getGrantDesk(), getPayStatus(), getClaimableNames()])
+      .then(([w, wallet, grants, pay, claimable]) => {
         if (cancelled) return;
-        setClaimed(c);
-        setIgn(c ?? "");
+        setClaimed(grants.claimedIgn);
         setWatch(w.map((row) => row.ign));
         setCoins(wallet.coins);
         setDesk(grants);
+        setNames(claimable);
         setPlugin(Boolean(pay.plugin));
         setReady(true);
       })
@@ -64,11 +67,11 @@ function AccountPage() {
       <PageFrame
         eyebrow="Desk"
         title="Your desk"
-        lead="Sign in to claim your Minecraft IGN, read the coin ledger, and watch names on the roster."
+        lead="Sign in to verify the Minecraft name you join with, read the coin ledger, and watch names on the roster."
       >
         <Panel texture="oak" className="mx-auto max-w-md">
           <p className="text-sm text-muted">
-            Shop packs queue for the IGN on this desk and deposit into the live NLO economy.
+            Shop packs queue for the verified IGN on this desk and deposit into the live NLO economy.
           </p>
           <Button className="mt-4" asChild>
             <Link to="/login">Sign in</Link>
@@ -86,36 +89,22 @@ function AccountPage() {
     );
   }
 
-  async function save(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    try {
-      const next = await saveClaim({ data: ign });
-      setClaimed(next);
-      setDesk((prev) => ({
-        ...prev,
-        claimedIgn: next,
-        grants: prev.grants.map((g) =>
-          g.status === "pending" || g.status === "delivering" ? { ...g, ign: next } : g,
-        ),
-      }));
-      toast.success(
-        desk.pendingCount > 0
-          ? `Claimed ${next}. ${desk.pendingCoins.toLocaleString()} coins will deliver in-game.`
-          : `Claimed ${next}`,
-      );
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not claim that name");
-    } finally {
-      setBusy(false);
-    }
+  function onClaimed(next: string) {
+    setClaimed(next);
+    setDesk((prev) => ({
+      ...prev,
+      claimedIgn: next,
+      grants: prev.grants.map((g) =>
+        g.status === "pending" || g.status === "delivering" ? { ...g, ign: next } : g,
+      ),
+    }));
   }
 
   return (
     <PageFrame
       eyebrow="Desk"
       title={user.displayName ?? "Player desk"}
-      lead="Claim the IGN you play under. Shop coins queue for that name and deposit into the live NLO economy."
+      lead="Verify the IGN you join nlo.gg with. Shop coins only deposit to that in-game account."
     >
       <Panel texture="oak" className="mb-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
@@ -135,28 +124,22 @@ function AccountPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel texture="oak">
-          <h2 className="text-2xl">Claim IGN</h2>
-          <form className="mt-4 flex flex-col gap-3 sm:flex-row" onSubmit={(e) => void save(e)}>
-            <Input
-              value={ign}
-              onChange={(e) => setIgn(e.target.value)}
-              placeholder="Your Minecraft name"
-              required
-            />
-            <Button type="submit" disabled={busy || !ready}>
-              Save
-            </Button>
-          </form>
+          <h2 className="text-2xl">Verify IGN</h2>
+          <p className="mt-2 text-sm text-muted">
+            Java names must be real Mojang accounts that have joined. Bedrock names must already be
+            online or on the roster, including the leading dot.
+          </p>
+          <ClaimIgnForm initial={claimed ?? ""} names={names} onClaimed={onClaimed} />
           {claimed ? (
             <div className="mt-4 flex items-center gap-3">
               <PlayerFace ign={claimed} size={40} />
               <p className="text-sm text-muted">
-                Shop coins and watches use <span className="text-foreground">{claimed}</span>
+                Verified in-game account <span className="text-foreground">{claimed}</span>
               </p>
             </div>
           ) : (
             <p className="mt-3 text-sm text-muted">
-              Claim your Minecraft IGN so coins can be delivered in-game.
+              Join nlo.gg, then claim the exact name the server shows.
             </p>
           )}
         </Panel>

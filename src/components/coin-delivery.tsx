@@ -22,7 +22,7 @@ export function CoinDeliveryPanel({
         <p className="font-mono text-xs tracking-widest text-accent uppercase">In-game delivery</p>
         {ready ? (
           <Badge variant={queued ? "gold" : waiting ? "wanted" : "oak"}>
-            {waiting ? "Needs IGN" : boxDown ? "Queued" : queued ? "Pending" : desk.deliveredCoins > 0 ? "Delivered" : "Ready"}
+            {waiting ? "Needs IGN" : boxDown ? "Queued" : queued ? "Pending" : desk.deliveredCoins > 0 ? "Delivered" : ign ? "Verified" : "Ready"}
           </Badge>
         ) : null}
       </div>
@@ -32,9 +32,9 @@ export function CoinDeliveryPanel({
         <p className="mt-2 text-sm text-muted">
           {formatInt(desk.pendingCoins)} coins are waiting.{" "}
           <Link to="/account" className="text-foreground underline">
-            Claim your Minecraft IGN
+            Claim the Minecraft name you join with
           </Link>{" "}
-          so coins can be delivered in-game.
+          so coins deposit in-game.
         </p>
       ) : boxDown ? (
         <p className="mt-2 text-sm text-muted">
@@ -45,17 +45,17 @@ export function CoinDeliveryPanel({
       ) : queued ? (
         <p className="mt-2 text-sm text-muted">
           {formatInt(desk.pendingCoins)} coins queued for{" "}
-          <span className="text-foreground">{ign}</span>. Join nlo.gg — they land on the next login
-          or within a few seconds if you are already online.
+          <span className="text-foreground">{ign}</span>. Join nlo.gg with that exact name —
+          they land on the next login or within a few seconds if you are already online.
         </p>
       ) : ign ? (
         <p className="mt-2 text-sm text-muted">
-          Shop coins deposit to <span className="text-foreground">{ign}</span> in the NLO economy.
-          Desk balance is the receipt ledger.
+          Shop coins deposit to verified IGN <span className="text-foreground">{ign}</span> in
+          the NLO economy. Desk balance is the receipt ledger.
         </p>
       ) : (
         <p className="mt-2 text-sm text-muted">
-          Claim your Minecraft IGN so coins can be delivered in-game.
+          Claim the Minecraft name you join with so coins can be delivered in-game.
         </p>
       )}
     </div>

@@ -6,8 +6,14 @@ import { readOrders, readWallet } from "@/lib/nlo/wallet";
 import { COIN_PACKS } from "@/lib/nlo/content";
 import { createCoinCheckout, fulfillStripeSession, stripeConfigured, stripeLive, webhookConfigured } from "@/lib/nlo/stripe";
 import { getWorldSnapshot, type SeenPlayer } from "@/lib/nlo/live";
-import { bindPendingGrants, claimIgnAvailable, pluginSeen, readGrantDesk } from "@/lib/nlo/grants";
-import { isValidIgn, type GrantDesk } from "@/lib/nlo/grant-shared";
+import {
+  claimedIdentity,
+  pluginSeen,
+  readGrantDesk,
+  saveVerifiedClaim,
+} from "@/lib/nlo/grants";
+import { emptyGrantDesk, isValidIgn, type GrantDesk } from "@/lib/nlo/grant-shared";
+import { resolveMinecraftIdentity } from "@/lib/nlo/ign-identity";
 
 export type { LiveStatus, SeenPlayer, WorldSnapshot } from "@/lib/nlo/live";
 export type { OrderRow, PaidPackResult, Wallet } from "@/lib/nlo/wallet";
@@ -29,6 +35,12 @@ export type IntelRow = {
   body: string;
   kind: string;
   posted_at: string;
+};
+
+export type ClaimableName = {
+  ign: string;
+  uuid: string | null;
+  online: boolean;
 };
 
 const ignSchema = z
@@ -66,6 +78,20 @@ export const getPlayer = createServerFn({ method: "GET" })
     };
   });
 
+export const getClaimableNames = createServerFn({ method: "GET" }).handler(async (): Promise<ClaimableName[]> => {
+  const snap = await getWorldSnapshot();
+  const online = new Set(snap.onlineNames.map((name) => name.toLowerCase()));
+  const ranked = [...snap.roster].sort((a, b) => Number(b.online) - Number(a.online) || a.ign.localeCompare(b.ign));
+  const extraOnline = snap.onlineNames
+    .filter((name) => !ranked.some((row) => row.ign.toLowerCase() === name.toLowerCase()))
+    .map((ign) => ({ ign, uuid: null, first_seen: "", last_seen: "", seen_count: 0, online: true }));
+  return [...extraOnline, ...ranked].slice(0, 24).map((row) => ({
+    ign: row.ign,
+    uuid: row.uuid,
+    online: Boolean(row.online) || online.has(row.ign.toLowerCase()),
+  }));
+});
+
 export const getBounties = createServerFn({ method: "GET" }).handler(async () => {
   try {
     const sql = await getSql();
@@ -95,11 +121,8 @@ export const getIntel = createServerFn({ method: "GET" }).handler(async () => {
 export const getClaim = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
-    const sql = await getSql();
-    const rows = await sql<{ ign: string }>`
-      select ign from nlo_claims where user_id = ${context.userId} limit 1
-    `;
-    return rows[0]?.ign ?? null;
+    const identity = await claimedIdentity(context.userId);
+    return identity?.ign ?? null;
   });
 
 export const saveClaim = createServerFn({ method: "POST" })
@@ -107,16 +130,16 @@ export const saveClaim = createServerFn({ method: "POST" })
   .validator((ign: string) => ignSchema.parse(ign))
   .handler(async ({ context, data: ign }) => {
     if (!isValidIgn(ign)) throw new Error("Use a Minecraft name.");
-    const available = await claimIgnAvailable(context.userId, ign);
-    if (!available) throw new Error("That IGN is already claimed.");
-    const sql = await getSql();
-    await sql`
-      insert into nlo_claims (user_id, ign)
-      values (${context.userId}, ${ign})
-      on conflict (user_id) do update set ign = excluded.ign
-    `;
-    await bindPendingGrants(context.userId, ign);
-    return ign;
+    const snap = await getWorldSnapshot();
+    const players = [
+      ...snap.onlineNames.map((name) => ({
+        ign: name,
+        uuid: snap.roster.find((row) => row.ign.toLowerCase() === name.toLowerCase())?.uuid ?? null,
+      })),
+      ...snap.roster.map((row) => ({ ign: row.ign, uuid: row.uuid })),
+    ];
+    const identity = await resolveMinecraftIdentity(ign, players);
+    return saveVerifiedClaim(context.userId, identity);
   });
 
 export const getWatch = createServerFn({ method: "GET" })
@@ -211,6 +234,10 @@ export const startCheckout = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const pack = COIN_PACKS.find((p) => p.id === data.packId);
     if (!pack) throw new Error("Unknown pack.");
+    const identity = await claimedIdentity(context.userId);
+    if (!identity?.ign) {
+      throw new Error("Claim the Minecraft name you join with before buying coins.");
+    }
     const origin = new URL(data.origin);
     if (origin.protocol !== "https:" && origin.hostname !== "localhost" && origin.hostname !== "127.0.0.1") {
       throw new Error("Checkout needs a secure site.");
@@ -222,6 +249,8 @@ export const startCheckout = createServerFn({ method: "POST" })
       coins: pack.coins,
       usd: pack.usd,
       origin: origin.origin,
+      ign: identity.ign,
+      uuid: identity.uuid,
     });
   });
 
@@ -238,13 +267,6 @@ export const getGrantDesk = createServerFn({ method: "GET" })
     try {
       return await readGrantDesk(context.userId);
     } catch {
-      return {
-        claimedIgn: null,
-        pendingCoins: 0,
-        pendingCount: 0,
-        deliveredCoins: 0,
-        grants: [],
-      };
+      return emptyGrantDesk();
     }
   });
-

@@ -135,6 +135,17 @@ async function ensureGrantTablesOnce() {
     create index if not exists nlo_coin_grants_user_idx
     on nlo_coin_grants (user_id, created_at desc)
   `);
+  await sql.query(`
+    create table if not exists nlo_claims (
+      user_id text primary key,
+      ign text not null,
+      uuid text,
+      verified_at timestamptz,
+      created_at timestamptz not null default now()
+    )
+  `);
+  await sql.query(`alter table nlo_claims add column if not exists uuid text`);
+  await sql.query(`alter table nlo_claims add column if not exists verified_at timestamptz`);
   try {
     await sql.query(`alter table nlo_orders add column if not exists stripe_session_id text`);
     await sql.query(`
@@ -173,13 +184,26 @@ function normalizeGrant(row: GrantRow): GrantRow {
   };
 }
 
-async function claimedIgn(userId: string): Promise<string | null> {
+export type ClaimedIdentity = {
+  ign: string;
+  uuid: string | null;
+};
+
+async function claimedIdentity(userId: string): Promise<ClaimedIdentity | null> {
   const sql = await getSql();
-  const rows = await sql<{ ign: string }>`
-    select ign from nlo_claims where user_id = ${userId} limit 1
+  const rows = await sql<{ ign: string; uuid: string | null }>`
+    select ign, uuid from nlo_claims where user_id = ${userId} limit 1
   `;
-  return rows[0]?.ign ?? null;
+  if (!rows[0]?.ign) return null;
+  return { ign: String(rows[0].ign), uuid: rows[0].uuid ? String(rows[0].uuid) : null };
 }
+
+async function claimedIgn(userId: string): Promise<string | null> {
+  const identity = await claimedIdentity(userId);
+  return identity?.ign ?? null;
+}
+
+export { claimedIdentity };
 
 export async function enqueuePaidGrant(input: {
   userId: string;
@@ -235,10 +259,31 @@ export async function claimIgnAvailable(userId: string, ign: string): Promise<bo
   return !rows[0];
 }
 
+export async function saveVerifiedClaim(
+  userId: string,
+  identity: { ign: string; uuid: string | null },
+): Promise<string> {
+  if (!isValidIgn(identity.ign)) throw new Error("Use a Minecraft name.");
+  const available = await claimIgnAvailable(userId, identity.ign);
+  if (!available) throw new Error("That IGN is already claimed.");
+  await ensureGrantTables();
+  const sql = await getSql();
+  await sql`
+    insert into nlo_claims (user_id, ign, uuid, verified_at)
+    values (${userId}, ${identity.ign}, ${identity.uuid}, now())
+    on conflict (user_id) do update set
+      ign = excluded.ign,
+      uuid = coalesce(excluded.uuid, nlo_claims.uuid),
+      verified_at = now()
+  `;
+  await bindPendingGrants(userId, identity.ign);
+  return identity.ign;
+}
+
 export async function readGrantDesk(userId: string): Promise<GrantDesk> {
   await ensureGrantTables();
   const sql = await getSql();
-  const ign = await claimedIgn(userId);
+  const identity = await claimedIdentity(userId);
   const rows = await sql<GrantRow>`
     select id, user_id, ign, coins, stripe_session_id, status,
            created_at::text as created_at,
@@ -253,7 +298,8 @@ export async function readGrantDesk(userId: string): Promise<GrantDesk> {
   const open = grants.filter((g) => g.status === "pending" || g.status === "delivering");
   const done = grants.filter((g) => g.status === "delivered");
   return {
-    claimedIgn: ign,
+    claimedIgn: identity?.ign ?? null,
+    claimedUuid: identity?.uuid ?? null,
     pendingCoins: open.reduce((sum, g) => sum + g.coins, 0),
     pendingCount: open.length,
     deliveredCoins: done.reduce((sum, g) => sum + g.coins, 0),
@@ -316,5 +362,3 @@ export async function releaseGrant(id: number): Promise<GrantRow | null> {
   `;
   return rows[0] ? normalizeGrant(rows[0]) : null;
 }
-
-

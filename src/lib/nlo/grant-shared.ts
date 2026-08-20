@@ -15,6 +15,7 @@ export type GrantRow = {
 
 export type GrantDesk = {
   claimedIgn: string | null;
+  claimedUuid: string | null;
   pendingCoins: number;
   pendingCount: number;
   deliveredCoins: number;
@@ -47,5 +48,14 @@ export function deliveryToast(grant: Pick<GrantRow, "coins" | "ign">): string {
   if (grant.ign) {
     return `${grant.coins.toLocaleString()} coins queued for ${grant.ign}. Join nlo.gg to receive them.`;
   }
-  return "Claim your Minecraft IGN so coins can be delivered in-game.";
+  return "Claim the Minecraft name you join with so coins can be delivered in-game.";
 }
+
+export const emptyGrantDesk = (): GrantDesk => ({
+  claimedIgn: null,
+  claimedUuid: null,
+  pendingCoins: 0,
+  pendingCount: 0,
+  deliveredCoins: 0,
+  grants: [],
+});

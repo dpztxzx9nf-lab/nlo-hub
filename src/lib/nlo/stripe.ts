@@ -53,6 +53,8 @@ export async function createCoinCheckout(input: {
   coins: number;
   usd: number;
   origin: string;
+  ign: string;
+  uuid: string | null;
 }) {
   const session = await stripePost("checkout/sessions", {
     mode: "payment",
@@ -60,12 +62,14 @@ export async function createCoinCheckout(input: {
     "line_items[0][quantity]": "1",
     "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][unit_amount]": String(input.usd * 100),
-    "line_items[0][price_data][product_data][name]": `${input.coins.toLocaleString()} NLO coins — ${input.name}`,
+    "line_items[0][price_data][product_data][name]": `${input.coins.toLocaleString()} NLO coins for ${input.ign} — ${input.name}`,
     success_url: `${input.origin}/shop?paid={CHECKOUT_SESSION_ID}`,
     cancel_url: `${input.origin}/shop?cancel=1`,
     client_reference_id: input.userId,
     "metadata[userId]": input.userId,
     "metadata[packId]": input.packId,
+    "metadata[ign]": input.ign,
+    "metadata[uuid]": input.uuid ?? "",
   });
   const url = typeof session.url === "string" ? session.url : "";
   const id = typeof session.id === "string" ? session.id : "";

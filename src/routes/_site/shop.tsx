@@ -6,18 +6,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { COIN_PACKS } from "@/lib/nlo/content";
+import { ClaimIgnForm } from "@/components/claim-ign";
 import { CoinDeliveryPanel } from "@/components/coin-delivery";
 import {
   fulfillCheckout,
+  getClaimableNames,
   getGrantDesk,
   getOrders,
   getPayStatus,
   getWallet,
   startCheckout,
+  type ClaimableName,
   type GrantDesk,
   type OrderRow,
 } from "@/lib/nlo/server";
-import { deliveryToast } from "@/lib/nlo/grant-shared";
+import { deliveryToast, emptyGrantDesk } from "@/lib/nlo/grant-shared";
 import { formatInt, formatWhen } from "@/lib/utils";
 
 const siteRoute = getRouteApi("/_site");
@@ -34,13 +37,8 @@ function ShopPage() {
   const signedIn = Boolean(user || session);
   const [coins, setCoins] = useState(0);
   const [orders, setOrders] = useState<OrderRow[]>([]);
-  const [desk, setDesk] = useState<GrantDesk>({
-    claimedIgn: null,
-    pendingCoins: 0,
-    pendingCount: 0,
-    deliveredCoins: 0,
-    grants: [],
-  });
+  const [desk, setDesk] = useState<GrantDesk>(emptyGrantDesk());
+  const [names, setNames] = useState<ClaimableName[]>([]);
   const [card, setCard] = useState(pay.card);
   const [live, setLive] = useState(Boolean(pay.live));
   const [webhook, setWebhook] = useState(Boolean(pay.webhook));
@@ -62,12 +60,13 @@ function ShopPage() {
   useEffect(() => {
     if (isPending || !user) return;
     let cancelled = false;
-    void Promise.all([getWallet(), getOrders(), getPayStatus(), getGrantDesk()])
-      .then(([w, o, nextPay, grants]) => {
+    void Promise.all([getWallet(), getOrders(), getPayStatus(), getGrantDesk(), getClaimableNames()])
+      .then(([w, o, nextPay, grants, claimable]) => {
         if (cancelled) return;
         setCoins(w.coins);
         setOrders(o);
         setDesk(grants);
+        setNames(claimable);
         setCard(nextPay.card);
         setLive(Boolean(nextPay.live));
         setWebhook(Boolean(nextPay.webhook));
@@ -101,6 +100,7 @@ function ShopPage() {
           const done = grants.filter((g) => g.status === "delivered");
           return {
             claimedIgn: grant.ign ?? prev.claimedIgn,
+            claimedUuid: prev.claimedUuid,
             pendingCoins: open.reduce((sum, g) => sum + g.coins, 0),
             pendingCount: open.length,
             deliveredCoins: done.reduce((sum, g) => sum + g.coins, 0),
@@ -129,6 +129,10 @@ function ShopPage() {
       toast.error("Card checkout is not connected yet.");
       return;
     }
+    if (!desk.claimedIgn) {
+      toast.error("Claim the Minecraft name you join with before paying.");
+      return;
+    }
     setBusy(packId);
     try {
       const { url } = await startCheckout({
@@ -147,10 +151,10 @@ function ShopPage() {
       title="Buy coins"
       lead={
         !card
-          ? "Pays by card through Stripe once keys are on this desk. After a charge, coins queue for your claimed Minecraft IGN."
+          ? "Pays by card through Stripe once keys are on this desk. After a charge, coins queue for your verified Minecraft IGN."
           : live
-            ? "Pays by card through Stripe. After the charge, coins queue for your claimed Minecraft IGN and deposit into the live NLO economy."
-            : "Packs are listed. Stripe is in test mode on this desk — no real charges until live keys are on. After a test pay, coins still queue for your claimed IGN."
+            ? "Pays by card through Stripe. After the charge, coins queue for the verified Minecraft name you join with and deposit into the live NLO economy."
+            : "Packs are listed. Stripe is in test mode on this desk — no real charges until live keys are on. After a test pay, coins still queue for your verified IGN."
       }
     >
       <Panel texture="oak" className="mb-6">
@@ -168,7 +172,7 @@ function ShopPage() {
                     : !live
                       ? "Stripe is still in test mode. No real money moves until a live secret key is installed."
                       : webhook
-                        ? "Real card charges. Stripe confirms even if you close the tab, then coins queue for your claimed IGN."
+                        ? "Real card charges. Stripe confirms even if you close the tab, then coins queue for your verified IGN."
                         : "Real card charges. Return to this page after Stripe so we can credit the pack."}
                 </p>
               </div>
@@ -177,6 +181,26 @@ function ShopPage() {
               </Button>
             </div>
             <CoinDeliveryPanel desk={desk} ready={ready} plugin={plugin} />
+            {!desk.claimedIgn && ready ? (
+              <div className="mt-4 rounded-sm bg-background/35 px-3 py-3">
+                <p className="font-mono text-xs tracking-widest text-accent uppercase">Verify IGN first</p>
+                <p className="mt-2 text-sm text-muted">
+                  Coins only deposit to a Minecraft name that has joined nlo.gg. Claim that exact name before paying.
+                </p>
+                <ClaimIgnForm
+                  names={names}
+                  onClaimed={(next) =>
+                    setDesk((prev) => ({
+                      ...prev,
+                      claimedIgn: next,
+                      grants: prev.grants.map((g) =>
+                        g.status === "pending" || g.status === "delivering" ? { ...g, ign: next } : g,
+                      ),
+                    }))
+                  }
+                />
+              </div>
+            ) : null}
           </>
         ) : (
           <div className="flex flex-wrap items-end justify-between gap-4">
@@ -184,11 +208,7 @@ function ShopPage() {
               <p className="font-mono text-xs tracking-widest text-accent uppercase">Shop</p>
               <p className="mt-1 font-display text-4xl">Coin packs</p>
               <p className="mt-1 text-sm text-muted">
-                {!card
-                  ? "Sign in to buy a pack. Coins queue for your claimed IGN and land in the live NLO economy."
-                  : live
-                    ? "Sign in to buy a pack. Coins queue for your claimed IGN and land in the live NLO economy."
-                    : "Sign in to try a pack. Checkout is Stripe test mode — no real money moves yet."}
+                Sign in, verify the Minecraft name you join with, then pay. Coins land on that in-game account.
               </p>
             </div>
             <Button asChild>
@@ -214,9 +234,15 @@ function ShopPage() {
                 <Button
                   variant={pack.id === "chest" || pack.id === "netherite" ? "default" : "oak"}
                   disabled={busy !== null}
-                  onClick={() => setConfirm(pack)}
+                  onClick={() => {
+                    if (!desk.claimedIgn) {
+                      toast.error("Verify the Minecraft name you join with first.");
+                      return;
+                    }
+                    setConfirm(pack);
+                  }}
                 >
-                  Buy
+                  {desk.claimedIgn ? "Buy" : "Verify IGN"}
                 </Button>
               ) : (
                 <Button
@@ -264,13 +290,30 @@ function ShopPage() {
             <h2 className="mt-2 text-3xl">{confirm.name}</h2>
             <p className="mt-3 text-sm text-muted">
               {formatInt(confirm.coins)} coins for ${confirm.usd}.{" "}
-              {live
-                ? "This is a real charge. After it succeeds, coins queue for your claimed IGN."
-                : "Stripe test mode — 4242 cards work, no real charge. After payment, coins still queue for your claimed IGN."}
+              {desk.claimedIgn ? (
+                <>
+                  After Stripe confirms, coins deposit to{" "}
+                  <span className="text-foreground">{desk.claimedIgn}</span> in-game.
+                </>
+              ) : (
+                "Claim the Minecraft name you join with before paying."
+              )}{" "}
+              {live ? "This is a real charge." : "Stripe test mode — 4242 cards work, no real charge."}
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
-              <Button disabled={busy !== null || !user} onClick={() => void payPack(confirm.id)}>
-                {busy ? "Opening Stripe…" : !user ? "Signing in…" : card ? `Pay $${confirm.usd}` : "Checkout not connected"}
+              <Button
+                disabled={busy !== null || !user || !desk.claimedIgn}
+                onClick={() => void payPack(confirm.id)}
+              >
+                {busy
+                  ? "Opening Stripe…"
+                  : !user
+                    ? "Signing in…"
+                    : !desk.claimedIgn
+                      ? "Verify IGN first"
+                      : card
+                        ? `Pay $${confirm.usd}`
+                        : "Checkout not connected"}
               </Button>
               <Button variant="stone" disabled={busy !== null} onClick={() => setConfirm(null)}>
                 Cancel

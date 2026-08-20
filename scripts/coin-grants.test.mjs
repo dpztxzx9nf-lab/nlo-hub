@@ -25,7 +25,7 @@ function deliveryToast(grant) {
   if (grant.ign) {
     return `${grant.coins.toLocaleString()} coins queued for ${grant.ign}. Join nlo.gg to receive them.`;
   }
-  return "Claim your Minecraft IGN so coins can be delivered in-game.";
+  return "Claim the Minecraft name you join with so coins can be delivered in-game.";
 }
 
 function verifyStripeSignature(payload, header, secret, now) {
@@ -64,7 +64,7 @@ test("player-facing grant status collapses delivering into pending", () => {
 
 test("pay toast tells the player where coins will land", () => {
   assert.match(deliveryToast({ coins: 1000, ign: "Steve" }), /queued for Steve/);
-  assert.match(deliveryToast({ coins: 1000, ign: null }), /Claim your Minecraft IGN/);
+  assert.match(deliveryToast({ coins: 1000, ign: null }), /Claim the Minecraft name/);
 });
 
 test("Stripe webhook HMAC matches Stripe's signed payload", () => {
@@ -149,4 +149,45 @@ test("empty player samples keep the last good names for two minutes", () => {
   assert.deepEqual(retainPlayerSample(4, [], names, 1_000, 200_000), []);
   assert.deepEqual(retainPlayerSample(0, names, names, 1_000, 2_000), []);
   assert.deepEqual(retainPlayerSample(4, [], [], 1_000, 2_000), []);
+});
+
+function dashedUuid(id) {
+  const hex = id.replace(/-/g, "").toLowerCase();
+  if (!/^[0-9a-f]{32}$/.test(hex)) return id;
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+function pickSeenIdentity(raw, players) {
+  const key = ignKey(raw);
+  if (!key) return null;
+  const hit = players.find((player) => ignKey(player.ign) === key);
+  if (!hit) return null;
+  return { ign: hit.ign, uuid: hit.uuid, source: "seen" };
+}
+
+test("claim binds to the exact in-game name, including Floodgate dots", () => {
+  const players = [
+    { ign: "Brockoozee", uuid: "7531fe36-556e-4c3a-8408-20577271affd" },
+    { ign: ".Ultraboy46151", uuid: "00000000-0000-0000-0009-01f4e2155c9a" },
+  ];
+  assert.equal(pickSeenIdentity("brockoozee", players)?.ign, "Brockoozee");
+  assert.equal(pickSeenIdentity("Ultraboy46151", players)?.ign, ".Ultraboy46151");
+  assert.equal(pickSeenIdentity(".ultraboy46151", players)?.ign, ".Ultraboy46151");
+  assert.equal(pickSeenIdentity("Notch", players), null);
+  assert.equal(dashedUuid("7531fe36556e4c3a840820577271affd"), "7531fe36-556e-4c3a-8408-20577271affd");
+});
+
+test("checkout refuses packs until a verified IGN is claimed", () => {
+  function startCheckout(claimedIgn) {
+    if (!claimedIgn) throw new Error("Claim the Minecraft name you join with before buying coins.");
+    return { ign: claimedIgn };
+  }
+  assert.throws(() => startCheckout(null), /Claim the Minecraft name/);
+  assert.deepEqual(startCheckout("Brockoozee"), { ign: "Brockoozee" });
+});
+
+test("Stripe product name includes the verified IGN", () => {
+  const ign = "Brockoozee";
+  const name = `${(1000).toLocaleString()} NLO coins for ${ign} — Pebble`;
+  assert.match(name, /for Brockoozee/);
 });
