@@ -8,6 +8,7 @@ import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { COIN_PACKS } from "@/lib/nlo/content";
 import { ClaimIgnForm } from "@/components/claim-ign";
 import { CoinDeliveryPanel } from "@/components/coin-delivery";
+import { CoinFlow, coinFlowPhase } from "@/components/coin-flow";
 import {
   getClaimableNames,
   getGrantDesk,
@@ -103,22 +104,25 @@ function ShopPage() {
     }
   }
 
+  const phase = coinFlowPhase({
+    signedIn,
+    claimedIgn: desk.claimedIgn,
+    pendingCount: desk.pendingCount,
+    delivered: desk.deliveredCoins > 0 && desk.pendingCount === 0,
+    seenNames: names.length > 0,
+  });
+
   return (
     <PageFrame
       eyebrow="Commerce"
       title="Buy coins"
-      lead={
-        !card
-          ? "Pays by card through Stripe once keys are on this desk. After a charge, coins queue for your verified Minecraft IGN."
-          : live
-            ? "Pays by card through Stripe. After the charge, coins queue on this desk and deposit in-game once you confirm the Minecraft name you join with."
-            : "Packs are listed. Stripe is in test mode on this desk — no real charges until live keys are on. After a test pay, coins still queue for your claimed IGN."
-      }
+      lead="Four steps: buy a pack, join nlo.gg as your Minecraft name, confirm your face, coins land in-game."
     >
       <Panel texture="oak" className="mb-6">
+        <CoinFlow phase={phase} ign={desk.claimedIgn} showJoin={phase === "join" || phase === "collect"} />
         {signedIn ? (
           <>
-            <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="mt-6 flex flex-wrap items-end justify-between gap-4 border-t border-foreground/10 pt-5">
               <div>
                 <p className="font-mono text-xs tracking-widest text-accent uppercase">Desk ledger</p>
                 <p className="mt-1 font-display text-5xl tabular-nums">
@@ -130,7 +134,7 @@ function ShopPage() {
                     : !live
                       ? "Stripe is still in test mode. No real money moves until a live secret key is installed."
                       : webhook
-                        ? "Real card charges. Stripe confirms even if you close the tab, then coins queue for your verified IGN."
+                        ? "Real card charges. After you pay, follow the steps above — coins are not in-game until you confirm your face."
                         : "Real card charges. Return to this page after Stripe so we can credit the pack."}
                 </p>
               </div>
@@ -141,9 +145,9 @@ function ShopPage() {
             <CoinDeliveryPanel desk={desk} ready={ready} plugin={plugin} />
             {!desk.claimedIgn && ready ? (
               <div className="mt-4 rounded-sm bg-background/35 px-3 py-3">
-                <p className="font-mono text-xs tracking-widest text-accent uppercase">Claim IGN to deliver</p>
+                <p className="font-mono text-xs tracking-widest text-accent uppercase">Step 3 — confirm your face</p>
                 <p className="mt-2 text-sm text-muted">
-                  You can pay now. Coins sit on this desk until you confirm the Minecraft name you join with. Join first so we match the exact in-game account.
+                  You can pay first. Coins stay on this desk until you join nlo.gg and confirm the name you play as.
                 </p>
                 <ClaimIgnForm
                   names={names}
@@ -161,13 +165,11 @@ function ShopPage() {
             ) : null}
           </>
         ) : (
-          <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="mt-6 flex flex-wrap items-end justify-between gap-4 border-t border-foreground/10 pt-5">
             <div>
               <p className="font-mono text-xs tracking-widest text-accent uppercase">Shop</p>
               <p className="mt-1 font-display text-4xl">Coin packs</p>
-              <p className="mt-1 text-sm text-muted">
-                Sign in to buy a pack. Claim your Minecraft IGN so coins deposit in-game after the charge.
-              </p>
+              <p className="mt-1 text-sm text-muted">Sign in to buy. After you pay, join nlo.gg and confirm your face so coins land in-game.</p>
             </div>
             <Button asChild>
               <Link to="/login">Sign in to buy</Link>
@@ -244,11 +246,11 @@ function ShopPage() {
               {formatInt(confirm.coins)} coins for ${confirm.usd}.{" "}
               {desk.claimedIgn ? (
                 <>
-                  After Stripe confirms, coins deposit to{" "}
-                  <span className="text-foreground">{desk.claimedIgn}</span> in-game.
+                  After you pay, join as{" "}
+                  <span className="text-foreground">{desk.claimedIgn}</span> — coins land in-game within a few seconds.
                 </>
               ) : (
-                "After Stripe confirms, coins sit on this desk until you confirm the Minecraft name you join with."
+                "After you pay: join nlo.gg as your Minecraft name, confirm your face, then coins land in-game."
               )}{" "}
               {live ? "This is a real charge." : "Stripe test mode — 4242 cards work, no real charge."}
             </p>

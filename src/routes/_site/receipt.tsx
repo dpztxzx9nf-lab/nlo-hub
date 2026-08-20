@@ -1,6 +1,7 @@
 import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ClaimIgnForm } from "@/components/claim-ign";
+import { CoinFlow, coinFlowPhase } from "@/components/coin-flow";
 import { CopyIp } from "@/components/copy-ip";
 import { PageFrame, Panel } from "@/components/page-frame";
 import { PlayerFace } from "@/components/player-face";
@@ -77,11 +78,21 @@ function ReceiptPage() {
     return () => window.clearTimeout(t);
   }, [receipt.pending]);
 
+  const phase = coinFlowPhase({
+    signedIn,
+    claimedIgn: receipt.claimedIgn,
+    pendingCount: receipt.paid && receipt.grantStatus !== "delivered" ? 1 : 0,
+    delivered: receipt.grantStatus === "delivered",
+    seenNames: names.length > 0,
+  });
+
   const title = receipt.paid ? "Paid" : receipt.pending ? "Confirming" : "Receipt";
   const lead = receipt.paid
-    ? receipt.already
-      ? "This pack is already on the desk. Stripe confirmed the charge."
-      : "Stripe confirmed the charge. Coins are on the desk and queue for the Minecraft name you join with."
+    ? receipt.claimedIgn
+      ? receipt.grantStatus === "delivered"
+        ? `Those coins already landed for ${receipt.claimedIgn}.`
+        : `Join as ${receipt.claimedIgn}. Coins land within a few seconds if you are already online.`
+      : "Step 1 is done. Next: join nlo.gg as your Minecraft name, confirm your face, then coins land in-game."
     : receipt.pending
       ? "Stripe is still confirming. This page reloads itself."
       : "We could not match that checkout yet.";
@@ -106,6 +117,12 @@ function ReceiptPage() {
 
         {receipt.error ? <p className="mt-4 text-sm text-muted">{receipt.error}</p> : null}
 
+        {receipt.paid ? (
+          <div className="mt-5 rounded-sm bg-background/35 px-3 py-3">
+            <CoinFlow phase={phase} ign={receipt.claimedIgn} showJoin={phase === "join" || phase === "collect"} />
+          </div>
+        ) : null}
+
         {receipt.paid && receipt.claimedIgn ? (
           <div className="mt-5 flex items-start gap-3 rounded-sm bg-background/35 px-3 py-3">
             <PlayerFace ign={receipt.claimedIgn} size={40} />
@@ -124,9 +141,9 @@ function ReceiptPage() {
 
         {receipt.paid && signedIn && !receipt.claimedIgn ? (
           <div className="mt-5 rounded-sm bg-background/35 px-3 py-3">
-            <p className="font-mono text-xs tracking-widest text-accent uppercase">Claim IGN to deliver</p>
+            <p className="font-mono text-xs tracking-widest text-accent uppercase">Step 3 — confirm your face</p>
             <p className="mt-2 text-sm text-muted">
-              Coins sit on this desk until you confirm the Minecraft name you join nlo.gg with. Join first — we match the name the live server has seen, not a typed guess.
+              Coins stay on this desk until you confirm the Minecraft name you join nlo.gg with — not your real name.
             </p>
             <ClaimIgnForm
               names={names}
@@ -137,9 +154,9 @@ function ReceiptPage() {
 
         {receipt.paid && !signedIn ? (
           <div className="mt-5 rounded-sm bg-background/35 px-3 py-3">
-            <p className="font-medium">Sign in to bind the coins</p>
+            <p className="font-medium">Sign in to finish</p>
             <p className="mt-2 text-sm text-muted">
-              The charge already went through. Sign in on this same desk so we can attach the pack to the Minecraft name you join with.
+              The charge already went through. Sign in on this same desk, join nlo.gg, then confirm your face so coins land.
             </p>
             <Button className="mt-4" asChild>
               <a href={`/login?next=${encodeURIComponent(`/receipt?paid=${receipt.sessionId}`)}`}>Sign in</a>

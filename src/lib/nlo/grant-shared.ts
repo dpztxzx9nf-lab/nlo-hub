@@ -46,9 +46,9 @@ export function publicGrantStatus(status: string): "pending" | "delivered" | "fa
 
 export function deliveryToast(grant: Pick<GrantRow, "coins" | "ign">): string {
   if (grant.ign) {
-    return `${grant.coins.toLocaleString()} coins queued for ${grant.ign}. Join nlo.gg to receive them.`;
+    return `${grant.coins.toLocaleString()} coins waiting for ${grant.ign}. Join nlo.gg to receive them.`;
   }
-  return "Claim the Minecraft name you join with so coins can be delivered in-game.";
+  return "Join nlo.gg, confirm your Minecraft name, then coins land in-game.";
 }
 
 export const emptyGrantDesk = (): GrantDesk => ({

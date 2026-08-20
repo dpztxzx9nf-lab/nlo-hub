@@ -32,9 +32,9 @@ export function CoinDeliveryPanel({
         <p className="mt-2 text-sm text-muted">
           {formatInt(desk.pendingCoins)} coins are waiting.{" "}
           <Link to="/account" className="text-foreground underline">
-            Confirm the Minecraft name you join with
+            Confirm your Minecraft name
           </Link>{" "}
-          so coins deposit in-game.
+          so coins land in-game.
         </p>
       ) : boxDown ? (
         <p className="mt-2 text-sm text-muted">
@@ -44,18 +44,17 @@ export function CoinDeliveryPanel({
         </p>
       ) : queued ? (
         <p className="mt-2 text-sm text-muted">
-          {formatInt(desk.pendingCoins)} coins queued for{" "}
-          <span className="text-foreground">{ign}</span>. Join nlo.gg with that exact name —
-          they land on the next login or within a few seconds if you are already online.
+          {formatInt(desk.pendingCoins)} coins waiting for{" "}
+          <span className="text-foreground">{ign}</span>. Join nlo.gg as that name —
+          they land on the next login, or within a few seconds if you are already online.
         </p>
       ) : ign ? (
         <p className="mt-2 text-sm text-muted">
-          Shop coins deposit to verified IGN <span className="text-foreground">{ign}</span> in
-          the NLO economy. Desk balance is the receipt ledger.
+          Shop coins land in-game for <span className="text-foreground">{ign}</span>. This number is the receipt, not your purse.
         </p>
       ) : (
         <p className="mt-2 text-sm text-muted">
-          Confirm the Minecraft name you join with so coins can be delivered in-game.
+          Join nlo.gg, confirm your face, then coins can land in-game.
         </p>
       )}
     </div>

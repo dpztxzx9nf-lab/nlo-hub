@@ -23,9 +23,9 @@ function publicGrantStatus(status) {
 
 function deliveryToast(grant) {
   if (grant.ign) {
-    return `${grant.coins.toLocaleString()} coins queued for ${grant.ign}. Join nlo.gg to receive them.`;
+    return `${grant.coins.toLocaleString()} coins waiting for ${grant.ign}. Join nlo.gg to receive them.`;
   }
-  return "Claim the Minecraft name you join with so coins can be delivered in-game.";
+  return "Join nlo.gg, confirm your Minecraft name, then coins land in-game.";
 }
 
 function verifyStripeSignature(payload, header, secret, now) {
@@ -63,8 +63,8 @@ test("player-facing grant status collapses delivering into pending", () => {
 });
 
 test("pay toast tells the player where coins will land", () => {
-  assert.match(deliveryToast({ coins: 1000, ign: "Steve" }), /queued for Steve/);
-  assert.match(deliveryToast({ coins: 1000, ign: null }), /Claim the Minecraft name/);
+  assert.match(deliveryToast({ coins: 1000, ign: "Steve" }), /waiting for Steve/);
+  assert.match(deliveryToast({ coins: 1000, ign: null }), /confirm your Minecraft name/);
 });
 
 test("Stripe webhook HMAC matches Stripe's signed payload", () => {
@@ -226,5 +226,24 @@ test("unseen names cannot be claimed", () => {
   assert.equal(resolveIdentity("brockoozee", players, ["Brockoozee"]).source, "online");
   assert.throws(() => resolveIdentity("Notch", players), /Join nlo.gg with that name first/);
   assert.throws(() => resolveIdentity(".UnseenBedrock", []), /Bedrock first/);
+});
+
+function coinFlowPhase({ signedIn, claimedIgn, pendingCount = 0, delivered = false, seenNames = false }) {
+  if (claimedIgn) {
+    if (delivered && pendingCount === 0) return "done";
+    if (pendingCount > 0) return "collect";
+    return "done";
+  }
+  if (!signedIn) return "buy";
+  if (pendingCount > 0) return seenNames ? "confirm" : "join";
+  return "buy";
+}
+
+test("player coin flow highlights the current step", () => {
+  assert.equal(coinFlowPhase({ signedIn: false, claimedIgn: null }), "buy");
+  assert.equal(coinFlowPhase({ signedIn: true, claimedIgn: null, pendingCount: 1, seenNames: false }), "join");
+  assert.equal(coinFlowPhase({ signedIn: true, claimedIgn: null, pendingCount: 1, seenNames: true }), "confirm");
+  assert.equal(coinFlowPhase({ signedIn: true, claimedIgn: "Steve", pendingCount: 1 }), "collect");
+  assert.equal(coinFlowPhase({ signedIn: true, claimedIgn: "Steve", pendingCount: 0, delivered: true }), "done");
 });
 

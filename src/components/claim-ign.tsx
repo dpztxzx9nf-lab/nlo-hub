@@ -23,7 +23,7 @@ export function ClaimIgnForm({
   async function lookup(name: string) {
     const next = name.trim();
     if (!next) {
-      toast.error("Enter the Minecraft name you join with.");
+      toast.error("Enter the Minecraft name you join with — not your real name.");
       return;
     }
     setBusy(true);
@@ -47,7 +47,7 @@ export function ClaimIgnForm({
       setIgn(claimed);
       setPreview(null);
       onClaimed(claimed);
-      toast.success(`Bound to ${claimed}. Shop coins will land on that in-game account.`);
+      toast.success(`This is you: ${claimed}. Join with that name and coins land in-game.`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not bind that name");
     } finally {
@@ -83,18 +83,18 @@ export function ClaimIgnForm({
         <div className="flex items-start gap-3">
           <PlayerFace ign={preview.ign} uuid={preview.uuid} size={48} />
           <div>
-            <p className="font-mono text-xs tracking-widest text-muted uppercase">Confirm this is you</p>
+            <p className="font-mono text-xs tracking-widest text-muted uppercase">Is this your skin?</p>
             <p className="mt-1 font-display text-2xl">{preview.ign}</p>
             <p className="mt-1 text-sm text-muted">
               {preview.online
-                ? "Online on nlo.gg right now. Coins will land on this account."
-                : "Seen on nlo.gg. Join with this exact name for coins to deposit."}
+                ? "You are online as this name right now. Coins will go to this account."
+                : "The live server has seen this name. Coins go here once you join as it."}
             </p>
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button type="button" disabled={busy} onClick={() => void confirm()}>
-            {busy ? "Binding…" : "Yes, this is me"}
+            {busy ? "Saving…" : "Yes, this is me"}
           </Button>
           <Button
             type="button"
@@ -114,8 +114,11 @@ export function ClaimIgnForm({
 
   return (
     <div>
+      <p className="mt-3 text-sm text-muted">
+        Tap the name you join with, or type it. Check the face before anything queues.
+      </p>
       <form
-        className="mt-4 flex flex-col gap-3 sm:flex-row"
+        className="mt-3 flex flex-col gap-3 sm:flex-row"
         autoComplete="off"
         onSubmit={(e) => {
           e.preventDefault();
@@ -144,19 +147,19 @@ export function ClaimIgnForm({
       </form>
       {online.length > 0 ? (
         <div className="mt-4">
-          <p className="font-mono text-xs tracking-widest text-muted uppercase">Online now</p>
+          <p className="font-mono text-xs tracking-widest text-muted uppercase">Online now — tap yours</p>
           {nameButtons(online)}
         </div>
       ) : null}
       {recent.length > 0 ? (
         <div className="mt-4">
-          <p className="font-mono text-xs tracking-widest text-muted uppercase">Recently on nlo.gg</p>
+          <p className="font-mono text-xs tracking-widest text-muted uppercase">Recently on nlo.gg — tap yours</p>
           {nameButtons(recent)}
         </div>
       ) : null}
       {online.length === 0 && recent.length === 0 ? (
         <p className="mt-3 text-sm text-muted">
-          Join nlo.gg first. We only bind coins to a name the live server has already seen.
+          You are not on the live list yet. Join nlo.gg with your Minecraft name, then come back and tap it.
         </p>
       ) : null}
     </div>

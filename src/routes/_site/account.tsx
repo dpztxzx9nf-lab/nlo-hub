@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ClaimIgnForm } from "@/components/claim-ign";
 import { CoinDeliveryPanel } from "@/components/coin-delivery";
+import { CoinFlow, coinFlowPhase } from "@/components/coin-flow";
 import { PageFrame, Panel } from "@/components/page-frame";
 import { PlayerFace } from "@/components/player-face";
 import { Button } from "@/components/ui/button";
@@ -67,11 +68,12 @@ function AccountPage() {
       <PageFrame
         eyebrow="Desk"
         title="Your desk"
-        lead="Sign in to verify the Minecraft name you join with, read the coin ledger, and watch names on the roster."
+        lead="Sign in to confirm the Minecraft name you join with, read the coin ledger, and watch names on the roster."
       >
-        <Panel texture="oak" className="mx-auto max-w-md">
-          <p className="text-sm text-muted">
-            Shop packs queue for the verified IGN on this desk and deposit into the live NLO economy.
+        <Panel texture="oak" className="mx-auto max-w-lg">
+          <CoinFlow phase="buy" showJoin />
+          <p className="mt-5 text-sm text-muted">
+            Sign in, buy a pack, join nlo.gg as your Minecraft name, confirm your face. Coins then land in-game.
           </p>
           <Button className="mt-4" asChild>
             <Link to="/login">Sign in</Link>
@@ -100,11 +102,19 @@ function AccountPage() {
     }));
   }
 
+  const phase = coinFlowPhase({
+    signedIn: true,
+    claimedIgn: claimed,
+    pendingCount: desk.pendingCount,
+    delivered: desk.deliveredCoins > 0 && desk.pendingCount === 0,
+    seenNames: names.length > 0,
+  });
+
   return (
     <PageFrame
       eyebrow="Desk"
       title={user.displayName ?? "Player desk"}
-      lead="Verify the IGN you join nlo.gg with. Shop coins only deposit to that in-game account."
+      lead="Confirm the Minecraft name you join nlo.gg with. Shop coins only land on that account."
     >
       <Panel texture="oak" className="mb-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
@@ -122,24 +132,27 @@ function AccountPage() {
         <CoinDeliveryPanel desk={{ ...desk, claimedIgn: claimed }} ready={ready} plugin={plugin} />
       </Panel>
 
+      <Panel texture="oak" className="mb-4">
+        <CoinFlow phase={phase} ign={claimed} showJoin={phase === "join" || phase === "collect"} />
+      </Panel>
+
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel texture="oak">
-          <h2 className="text-2xl">Verify IGN</h2>
+          <h2 className="text-2xl">Your Minecraft name</h2>
           <p className="mt-2 text-sm text-muted">
-            Join nlo.gg first. We bind coins to the exact name the live server reports — you
-            confirm the face before anything queues.
+            Join nlo.gg first. Tap the name the server shows, check the skin, then hit Yes, this is me.
           </p>
           <ClaimIgnForm initial={claimed ?? ""} names={names} onClaimed={onClaimed} />
           {claimed ? (
             <div className="mt-4 flex items-center gap-3">
               <PlayerFace ign={claimed} size={40} />
               <p className="text-sm text-muted">
-                Verified in-game account <span className="text-foreground">{claimed}</span>
+                Coins land for <span className="text-foreground">{claimed}</span> when you join as that name.
               </p>
             </div>
           ) : (
             <p className="mt-3 text-sm text-muted">
-              Join nlo.gg, then claim the exact name the server shows.
+              Join nlo.gg, then tap the exact name the server shows and confirm the face.
             </p>
           )}
         </Panel>
