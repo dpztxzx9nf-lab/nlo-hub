@@ -50,16 +50,13 @@ export function CoinDeliveryPanel({
         </p>
       ) : ign ? (
         <p className="mt-2 text-sm text-muted">
-          Shop coins land in-game for <span className="text-foreground">{ign}</span>. This number is
-          the receipt, not your purse.
-          {desk.deliveredCoins > 0 ? (
+          Shop coins land in-game for <span className="text-foreground">{ign}</span>. This
+          number is the receipt — once delivered they leave this desk and sit on that
+          account.
+          {desk.pendingCoins > 0 ? (
             <>
               {" "}
-              Spend them on a{" "}
-              <Link to="/bounties" className="text-foreground underline">
-                funded bounty
-              </Link>
-              .
+              {formatInt(desk.pendingCoins)} still waiting to land.
             </>
           ) : null}
         </p>
