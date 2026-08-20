@@ -186,6 +186,29 @@ export async function debitWallet(userId: string, amount: number): Promise<Walle
   return { coins: Number(rows[0].coins) };
 }
 
+/**
+ * Clear desk balance when a shop pack lands in-game. Soft clamp so prior bounty
+ * spends (already taken from desk) do not block delivery or go negative.
+ * Idempotent callers must only invoke this on the first pending→delivered hop.
+ */
+export async function softDebitWallet(userId: string, amount: number): Promise<Wallet> {
+  if (!Number.isInteger(amount) || amount < 1) {
+    return readWallet(userId);
+  }
+  await ensureWalletTables();
+  const sql = await getSql();
+  const rows = await sql<{ coins: number }>`
+    update nlo_wallets
+    set coins = greatest(0, coins - ${amount}), updated_at = now()
+    where user_id = ${userId}
+    returning coins
+  `;
+  if (!rows[0]) {
+    return { coins: 0 };
+  }
+  return { coins: Number(rows[0].coins) };
+}
+
 export async function creditWallet(userId: string, amount: number): Promise<Wallet> {
   if (!Number.isInteger(amount) || amount < 1) throw new Error("Invalid coin amount.");
   await ensureWalletTables();

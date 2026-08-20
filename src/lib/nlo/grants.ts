@@ -8,6 +8,7 @@ import {
   type GrantDesk,
   type GrantRow,
 } from "@/lib/nlo/grant-shared";
+import { softDebitWallet } from "@/lib/nlo/wallet";
 
 export type { GrantDesk, GrantRow, GrantStatus } from "@/lib/nlo/grant-shared";
 export {
@@ -345,6 +346,13 @@ export async function claimGrantForDelivery(id: number): Promise<GrantRow | null
   return rows[0] ? normalizeGrant(rows[0]) : null;
 }
 
+/**
+ * Mark a shop grant delivered in-game and clear the matching desk balance.
+ * Desk is a holding account until NLOCoins settles — residual desk coins must
+ * not stay spendable for bounties after the same pack lands in-game.
+ * Soft-clamps the debit so prior bounty spends do not block plugin retries.
+ * Only debits on the first pending/delivering → delivered transition.
+ */
 export async function markGrantDelivered(id: number, ign?: string): Promise<GrantRow | null> {
   await ensureGrantTables();
   const sql = await getSql();
@@ -354,13 +362,37 @@ export async function markGrantDelivered(id: number, ign?: string): Promise<Gran
         delivered_at = coalesce(delivered_at, now()),
         ign = coalesce(${ign ?? null}, ign)
     where id = ${id}
-      and status in ('pending', 'delivering', 'delivered')
+      and status in ('pending', 'delivering')
     returning id, user_id, ign, coins, stripe_session_id, status,
               created_at::text as created_at,
               delivered_at::text as delivered_at,
               attempted_at::text as attempted_at
   `;
-  return rows[0] ? normalizeGrant(rows[0]) : null;
+  if (rows[0]) {
+    const grant = normalizeGrant(rows[0]);
+    try {
+      await softDebitWallet(grant.user_id, grant.coins);
+    } catch (err) {
+      console.error("nlo-shop desk clear failed", {
+        id: grant.id,
+        user_id: grant.user_id,
+        coins: grant.coins,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    }
+    return grant;
+  }
+  // Idempotent: plugin may retry after we already flipped status.
+  const existing = await sql<GrantRow>`
+    select id, user_id, ign, coins, stripe_session_id, status,
+           created_at::text as created_at,
+           delivered_at::text as delivered_at,
+           attempted_at::text as attempted_at
+    from nlo_coin_grants
+    where id = ${id}
+    limit 1
+  `;
+  return existing[0] ? normalizeGrant(existing[0]) : null;
 }
 
 export async function releaseGrant(id: number): Promise<GrantRow | null> {
