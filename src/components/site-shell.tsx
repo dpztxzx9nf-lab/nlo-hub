@@ -7,7 +7,7 @@ import { HeaderLive } from "@/components/status-live";
 import { Button } from "@/components/ui/button";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { UserButton } from "@/lib/auth/gates";
-import { NAV, SERVER } from "@/lib/nlo/content";
+import { NAV, MORE_NAV, SERVER } from "@/lib/nlo/content";
 import type { LiveStatus } from "@/lib/nlo/server";
 import { cn } from "@/lib/utils";
 
@@ -171,6 +171,11 @@ function Footer() {
           </p>
         </div>
         <div className="flex flex-wrap gap-4 text-sm text-muted">
+          {MORE_NAV.map((item) => (
+            <Link key={item.to} to={item.to} className="hover:text-foreground">
+              {item.label}
+            </Link>
+          ))}
           <Link to="/play" className="hover:text-foreground">
             Join
           </Link>

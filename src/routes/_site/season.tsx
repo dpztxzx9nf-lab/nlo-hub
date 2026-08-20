@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageFrame, Panel } from "@/components/page-frame";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CHALLENGES, PRIZES, SERVER } from "@/lib/nlo/content";
+import { CHALLENGES, PRIZES, SEASON_LEAD, SERVER } from "@/lib/nlo/content";
 
 export const Route = createFileRoute("/_site/season")({
   component: SeasonPage,
@@ -13,11 +13,7 @@ function SeasonPage() {
   const days = Math.max(1, Math.floor((Date.now() - started.getTime()) / 86_400_000));
 
   return (
-    <PageFrame
-      eyebrow={SERVER.season}
-      title="Play for the close"
-      lead="Top player takes $20 — cloak, skin, Minecoins, gift card, or a split. Top clan pays 25,000 coins to every member."
-    >
+    <PageFrame eyebrow={SERVER.season} title="Play for the close" lead={SEASON_LEAD}>
       <div className="mb-6 overflow-hidden rounded-lg">
         <img
           src="/world-hills.jpg"
@@ -26,7 +22,7 @@ function SeasonPage() {
         />
       </div>
 
-      <div className="mb-6 grid gap-4 md:grid-cols-2">
+      <div className="mb-6 grid gap-4 md:grid-cols-3">
         {PRIZES.map((p) => (
           <Panel key={p.place} texture="oak">
             <p className="font-mono text-xs tracking-widest text-accent uppercase">{p.place}</p>
@@ -56,7 +52,8 @@ function SeasonPage() {
           <div className="tex-grass h-full w-3/5" />
         </div>
         <p className="mt-2 font-mono text-xs text-muted">
-          How we rank #1: time on the world, funded bounties, and challenges. The $20 purse waits at the close.
+          How we rank #1: time on the world, funded bounties, and challenges. The $50
+          purse waits at the close. Top builder is judged on the world.
         </p>
       </Panel>
 

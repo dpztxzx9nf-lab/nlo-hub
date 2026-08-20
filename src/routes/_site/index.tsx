@@ -1,7 +1,7 @@
 import { createFileRoute, getRouteApi, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { ArrowRight, Swords, Trophy, Wallet } from "lucide-react";
-import { CopyIp } from "@/components/copy-ip";
+import { CopyConsoleFriend, CopyIp } from "@/components/copy-ip";
 import { PlayerFace } from "@/components/player-face";
 import { StatusLive, LiveCount, useLiveWorld } from "@/components/status-live";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +39,7 @@ function Home() {
         ? online
         : [];
   const livePlayers = live.status.checked ? live.status.players : status.players;
+  const showHunt = openBounties.length > 0;
 
   return (
     <div>
@@ -58,12 +59,12 @@ function Home() {
           <h1 className="mt-4 max-w-3xl text-6xl leading-none sm:text-8xl">NLO</h1>
           <p className="mt-2 font-display text-xl text-accent sm:text-2xl">{SERVER.fullName}</p>
           <p className="mt-4 max-w-xl text-lg text-foreground/90">
-            An open survival SMP. Build, trade, raid, and hunt bounties on one
-            shared world — plus a creative world where you buy plots and show
-            off builds.
+            Copy the address and join tonight. Java, Bedrock, and console share one
+            survival world — build, trade, raid.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <CopyIp size="lg" />
+            <CopyConsoleFriend size="lg" />
             <Button variant="oak" size="lg" asChild>
               <Link to="/play">
                 How to join
@@ -77,7 +78,7 @@ function Home() {
             </Button>
           </div>
           <p className="mt-4 font-mono text-sm text-muted">
-            {SERVER.ip} · Java {SERVER.version} · Bedrock {SERVER.bedrockPort} · Console{" "}
+            Java {SERVER.ip} · Bedrock {SERVER.ip}:{SERVER.bedrockPort} · Console{" "}
             {SERVER.consoleFriend}
           </p>
         </div>
@@ -89,25 +90,7 @@ function Home() {
         <Stat icon={Trophy} label="On now" value={<LiveCount status={status} />} />
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-4 px-4 md:grid-cols-3">
-        {FEATURES.map((f) => (
-          <Link key={f.title} to={f.href} className="group block">
-            <Panel>
-              <div className="overflow-hidden rounded-sm">
-                <img
-                  src={f.image}
-                  alt=""
-                  className="aspect-photo w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                />
-              </div>
-              <h2 className="mt-4 text-2xl">{f.title}</h2>
-              <p className="mt-2 text-sm text-muted">{f.body}</p>
-            </Panel>
-          </Link>
-        ))}
-      </section>
-
-      <section className="mx-auto mt-10 grid max-w-6xl gap-4 px-4 lg:grid-cols-2">
+      <section className={`mx-auto grid max-w-6xl gap-4 px-4 ${showHunt ? "lg:grid-cols-2" : ""}`}>
         <Panel texture="oak">
           <div className="flex items-end justify-between gap-3">
             <div>
@@ -151,21 +134,17 @@ function Home() {
           )}
         </Panel>
 
-        <Panel>
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <p className="font-mono text-xs tracking-widest text-accent uppercase">Hunt</p>
-              <h2 className="text-3xl">Open bounties</h2>
+        {showHunt ? (
+          <Panel>
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="font-mono text-xs tracking-widest text-accent uppercase">Hunt</p>
+                <h2 className="text-3xl">Open bounties</h2>
+              </div>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/bounties">Board</Link>
+              </Button>
             </div>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/bounties">Board</Link>
-            </Button>
-          </div>
-          {openBounties.length === 0 ? (
-            <p className="mt-5 text-sm text-muted">
-              No funded names yet. Sign in, claim your IGN, and post one.
-            </p>
-          ) : (
             <ul className="mt-5 grid gap-3">
               {openBounties.map((b) => (
                 <li key={b.id} className="flex items-start gap-3 rounded-sm bg-background/35 p-3">
@@ -180,8 +159,26 @@ function Home() {
                 </li>
               ))}
             </ul>
-          )}
-        </Panel>
+          </Panel>
+        ) : null}
+      </section>
+
+      <section className="mx-auto mt-10 grid max-w-6xl gap-4 px-4 md:grid-cols-3">
+        {FEATURES.map((f) => (
+          <Link key={f.title} to={f.href} className="group block">
+            <Panel>
+              <div className="overflow-hidden rounded-sm">
+                <img
+                  src={f.image}
+                  alt=""
+                  className="aspect-photo w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                />
+              </div>
+              <h2 className="mt-4 text-2xl">{f.title}</h2>
+              <p className="mt-2 text-sm text-muted">{f.body}</p>
+            </Panel>
+          </Link>
+        ))}
       </section>
     </div>
   );

@@ -12,18 +12,25 @@ export const SERVER = {
   seasonStart: "2026-03-02",
 } as const;
 
+/** Header only — keep short. Pages still live; extra links sit in the footer. */
 export const NAV = [
-  { to: "/", label: "Home", exact: true },
   { to: "/play", label: "Join" },
-  { to: "/world", label: "World" },
   { to: "/season", label: "Season" },
-  { to: "/bounties", label: "Bounties" },
-  { to: "/boards", label: "Boards" },
   { to: "/shop", label: "Shop" },
   { to: "/roster", label: "Roster" },
   { to: "/rules", label: "Rules" },
+] as const;
+
+export const MORE_NAV = [
+  { to: "/world", label: "World" },
+  { to: "/bounties", label: "Bounties" },
+  { to: "/boards", label: "Boards" },
   { to: "/intel", label: "Intel" },
 ] as const;
+
+/** How $50 / $20 season prizes can land. Same menu for top player and top builder. */
+export const PRIZE_CHOICES =
+  "NLO coins, Minecoins, a custom skin, a cloak, or an Amazon gift card";
 
 export const FEATURES = [
   {
@@ -40,7 +47,7 @@ export const FEATURES = [
   },
   {
     title: "Season One",
-    body: "Finish first and take $20 — cloak, custom skin, Minecoins, Amazon gift card, or a split. Top clan shares 25,000 coins each.",
+    body: `Top player takes $50. Top builder takes $20. Same choices: ${PRIZE_CHOICES}. Top clan shares 25,000 coins each.`,
     href: "/season",
     image: "/world-hills.jpg",
   },
@@ -144,16 +151,33 @@ export const CHALLENGES = [
   { cadence: "Weekly", title: "Show the plot", detail: "Buy or tend a creative-world plot and open it for visitors.", reward: "220 prestige · plot crate" },
   { cadence: "Weekly", title: "Claim a name", detail: "Turn in a funded bounty, or post one that gets claimed.", reward: "300 prestige" },
   { cadence: "Season", title: "Still standing", detail: "Keep a claimed base intact through two weekly raids.", reward: "Season title" },
-  { cadence: "Season", title: "Top of the ledger", detail: "Finish Season One as the #1 player. $20 in value — one prize or a split.", reward: "$20 · cloak / skin / Minecoins / gift card" },
+  {
+    cadence: "Season",
+    title: "Top of the ledger",
+    detail: `Finish Season One as the #1 player. $50 — ${PRIZE_CHOICES}.`,
+    reward: "$50 · NLO coins / Minecoins / skin / cloak / gift card",
+  },
+  {
+    cadence: "Season",
+    title: "Top builder",
+    detail: `The standout build at season close. $20 of the same rewards: ${PRIZE_CHOICES}.`,
+    reward: "$20 · same choices",
+  },
   { cadence: "Season", title: "Banner clan", detail: "The clan on top at season close. Every listed member is paid.", reward: "25,000 coins each" },
 ] as const;
 
 export const PRIZES = [
   {
     place: "Top player",
+    title: "$50",
+    body: `The #1 player at season close takes $50. Pick how it lands: ${PRIZE_CHOICES}.`,
+    note: "One winner. You pick the form.",
+  },
+  {
+    place: "Top builder",
     title: "$20",
-    body: "The #1 player at season close gets $20 of real value. Take it as a cloak, a custom Minecraft skin, Minecoins, an Amazon gift card, or split it across those.",
-    note: "One winner. You pick how the $20 lands.",
+    body: `The top builder at season close takes $20 of the same rewards: ${PRIZE_CHOICES}.`,
+    note: "One winner. You pick the form.",
   },
   {
     place: "Top clan",
@@ -162,6 +186,9 @@ export const PRIZES = [
     note: "Roster at close is the roster that gets paid.",
   },
 ] as const;
+
+export const SEASON_LEAD =
+  "Top player takes $50. Top builder takes $20. Same choices: NLO coins, Minecoins, skin, cloak, or Amazon gift card. Top clan pays 25,000 coins to every member.";
 
 export const COIN_PACKS = [
   {

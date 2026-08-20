@@ -281,7 +281,7 @@ export async function saveVerifiedClaim(
 ): Promise<string> {
   if (!isValidIgn(identity.ign)) throw new Error("Use a Minecraft name.");
   const available = await claimIgnAvailable(userId, identity.ign);
-  if (!available) throw new Error("That IGN is already claimed.");
+  if (!available) throw new Error("That Minecraft name is already claimed.");
   await ensureGrantTables();
   const sql = await getSql();
   await sql`

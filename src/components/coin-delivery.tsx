@@ -22,7 +22,7 @@ export function CoinDeliveryPanel({
         <p className="font-mono text-xs tracking-widest text-accent uppercase">In-game delivery</p>
         {ready ? (
           <Badge variant={queued ? "gold" : waiting ? "wanted" : "oak"}>
-            {waiting ? "Needs IGN" : boxDown ? "Queued" : queued ? "Pending" : desk.deliveredCoins > 0 ? "Delivered" : ign ? "Verified" : "Ready"}
+            {waiting ? "Needs name" : boxDown ? "Queued" : queued ? "Pending" : desk.deliveredCoins > 0 ? "Delivered" : ign ? "Verified" : "Ready"}
           </Badge>
         ) : null}
       </div>

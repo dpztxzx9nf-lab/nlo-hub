@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 function isValidIgn(raw) {
@@ -238,6 +239,14 @@ function coinFlowPhase({ signedIn, claimedIgn, pendingCount = 0, delivered = fal
   if (pendingCount > 0) return seenNames ? "confirm" : "join";
   return "buy";
 }
+
+test("season prizes are $50 player, $20 builder, 25k clan", () => {
+  const src = readFileSync(new URL("../src/lib/nlo/content.ts", import.meta.url), "utf8");
+  assert.match(src, /place: "Top player"[\s\S]{0,80}title: "\$50"/);
+  assert.match(src, /place: "Top builder"[\s\S]{0,80}title: "\$20"/);
+  assert.match(src, /place: "Top clan"[\s\S]{0,80}title: "25,000 coins each"/);
+  assert.doesNotMatch(src, /Finish first and take \$20/);
+});
 
 test("player coin flow highlights the current step", () => {
   assert.equal(coinFlowPhase({ signedIn: false, claimedIgn: null }), "buy");

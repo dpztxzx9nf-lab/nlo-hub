@@ -44,7 +44,8 @@ function BountiesPage() {
           <li>
             <Panel>
               <p className="text-sm text-muted">
-                No funded names yet. Sign in, claim your IGN, and post one.
+                No funded names yet. Coins from your purse pay the hunt. Sign in,
+                confirm the Minecraft name you join with, and post one.
               </p>
             </Panel>
           </li>
@@ -90,7 +91,9 @@ function PostForm({ onPosted }: { onPosted: (row: BountyRow | undefined) => void
   if (!user && !session) {
     return (
       <Panel>
-        <p className="text-muted">Sign in and claim your IGN to post a funded bounty.</p>
+        <p className="text-muted">
+          Sign in and confirm the Minecraft name you join with to post a funded bounty.
+        </p>
         <Button className="mt-3" asChild>
           <Link to="/login">Sign in</Link>
         </Button>
@@ -124,7 +127,7 @@ function PostForm({ onPosted }: { onPosted: (row: BountyRow | undefined) => void
         <Input
           value={target}
           onChange={(e) => setTarget(e.target.value)}
-          placeholder="Target IGN"
+          placeholder="Target Minecraft name"
           required
         />
         <Input

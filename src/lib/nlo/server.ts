@@ -153,7 +153,7 @@ export const previewClaim = createServerFn({ method: "POST" })
     const { players, onlineNames } = snapshotPlayers(snap);
     const identity = await resolveMinecraftIdentity(ign, players, onlineNames);
     const available = await claimIgnAvailable(context.userId, identity.ign);
-    if (!available) throw new Error("That IGN is already claimed.");
+    if (!available) throw new Error("That Minecraft name is already claimed.");
     return {
       ign: identity.ign,
       uuid: identity.uuid,
