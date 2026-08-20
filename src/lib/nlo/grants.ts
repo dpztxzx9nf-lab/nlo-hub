@@ -8,7 +8,6 @@ import {
   type GrantDesk,
   type GrantRow,
 } from "@/lib/nlo/grant-shared";
-import { softDebitWallet } from "@/lib/nlo/wallet";
 
 export type { GrantDesk, GrantRow, GrantStatus } from "@/lib/nlo/grant-shared";
 export {
@@ -351,37 +350,43 @@ export async function claimGrantForDelivery(id: number): Promise<GrantRow | null
  * Desk is a holding account until NLOCoins settles — residual desk coins must
  * not stay spendable for bounties after the same pack lands in-game.
  * Soft-clamps the debit so prior bounty spends do not block plugin retries.
- * Only debits on the first pending/delivering → delivered transition.
+ * Status flip + desk clear run in one statement so they cannot diverge.
  */
 export async function markGrantDelivered(id: number, ign?: string): Promise<GrantRow | null> {
   await ensureGrantTables();
   const sql = await getSql();
-  const rows = await sql<GrantRow>`
-    update nlo_coin_grants
-    set status = 'delivered',
-        delivered_at = coalesce(delivered_at, now()),
-        ign = coalesce(${ign ?? null}, ign)
-    where id = ${id}
-      and status in ('pending', 'delivering')
-    returning id, user_id, ign, coins, stripe_session_id, status,
-              created_at::text as created_at,
-              delivered_at::text as delivered_at,
-              attempted_at::text as attempted_at
-  `;
-  if (rows[0]) {
-    const grant = normalizeGrant(rows[0]);
-    try {
-      await softDebitWallet(grant.user_id, grant.coins);
-    } catch (err) {
-      console.error("nlo-shop desk clear failed", {
-        id: grant.id,
-        user_id: grant.user_id,
-        coins: grant.coins,
-        err: err instanceof Error ? err.message : String(err),
-      });
-    }
-    return grant;
-  }
+
+  // Atomic: only the first pending/delivering → delivered transition debits the desk.
+  // CTE keeps the status guard and soft-debit in the same statement.
+  const rows = await sql.query<GrantRow>(
+    `WITH flipped AS (
+       UPDATE nlo_coin_grants
+       SET status = 'delivered',
+           delivered_at = COALESCE(delivered_at, now()),
+           ign = COALESCE($2, ign)
+       WHERE id = $1
+         AND status IN ('pending', 'delivering')
+       RETURNING id, user_id, ign, coins, stripe_session_id, status,
+                 created_at::text AS created_at,
+                 delivered_at::text AS delivered_at,
+                 attempted_at::text AS attempted_at
+     ),
+     debited AS (
+       UPDATE nlo_wallets w
+       SET coins = GREATEST(0, w.coins - f.coins),
+           updated_at = now()
+       FROM flipped f
+       WHERE w.user_id = f.user_id
+       RETURNING f.id
+     )
+     SELECT id, user_id, ign, coins, stripe_session_id, status,
+            created_at, delivered_at, attempted_at
+     FROM flipped`,
+    [id, ign ?? null],
+  );
+
+  if (rows[0]) return normalizeGrant(rows[0]);
+
   // Idempotent: plugin may retry after we already flipped status.
   const existing = await sql<GrantRow>`
     select id, user_id, ign, coins, stripe_session_id, status,
