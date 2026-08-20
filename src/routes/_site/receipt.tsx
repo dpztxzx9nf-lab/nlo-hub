@@ -119,7 +119,12 @@ function ReceiptPage() {
 
         {receipt.paid ? (
           <div className="mt-5 rounded-sm bg-background/35 px-3 py-3">
-            <CoinFlow phase={phase} ign={receipt.claimedIgn} showJoin={phase === "join" || phase === "collect"} />
+            <CoinFlow
+              phase={phase}
+              ign={receipt.claimedIgn}
+              showJoin={phase === "join" || phase === "collect"}
+              canSpend={receipt.grantStatus === "delivered"}
+            />
           </div>
         ) : null}
 
@@ -165,6 +170,11 @@ function ReceiptPage() {
         ) : null}
 
         <div className="mt-6 flex flex-wrap gap-2">
+          {receipt.grantStatus === "delivered" ? (
+            <Button asChild>
+              <Link to="/bounties">Post a bounty</Link>
+            </Button>
+          ) : null}
           <CopyIp />
           <Button variant="stone" asChild>
             <Link to="/play">How to join</Link>

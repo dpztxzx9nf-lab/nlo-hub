@@ -57,10 +57,12 @@ export function CoinFlow({
   phase,
   ign = null,
   showJoin = false,
+  canSpend = false,
 }: {
   phase: CoinFlowPhase;
   ign?: string | null;
   showJoin?: boolean;
+  canSpend?: boolean;
 }) {
   const current = phase === "done" ? STEPS.length : ORDER.indexOf(phase);
   return (
@@ -101,6 +103,18 @@ export function CoinFlow({
           <CopyIp />
           <Button variant="stone" asChild>
             <Link to="/play">How to join</Link>
+          </Button>
+        </div>
+      ) : null}
+      {phase === "done" && canSpend ? (
+        <div className="mt-4">
+          <p className="text-sm text-muted">
+            {ign
+              ? `Those coins are on ${ign} in-game. Spend them on a funded bounty.`
+              : "Those coins are in-game. Spend them on a funded bounty."}
+          </p>
+          <Button className="mt-3" asChild>
+            <Link to="/bounties">Post a bounty</Link>
           </Button>
         </div>
       ) : null}

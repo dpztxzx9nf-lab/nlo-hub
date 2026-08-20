@@ -125,15 +125,27 @@ function AccountPage() {
             </p>
             <p className="mt-1 text-sm text-muted">Desk ledger. Gameplay spending uses the in-game balance.</p>
           </div>
-          <Button asChild>
-            <Link to="/shop">Buy coins</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {desk.deliveredCoins > 0 ? (
+              <Button asChild>
+                <Link to="/bounties">Post a bounty</Link>
+              </Button>
+            ) : null}
+            <Button variant={desk.deliveredCoins > 0 ? "stone" : "default"} asChild>
+              <Link to="/shop">Buy coins</Link>
+            </Button>
+          </div>
         </div>
         <CoinDeliveryPanel desk={{ ...desk, claimedIgn: claimed }} ready={ready} plugin={plugin} />
       </Panel>
 
       <Panel texture="oak" className="mb-4">
-        <CoinFlow phase={phase} ign={claimed} showJoin={phase === "join" || phase === "collect"} />
+        <CoinFlow
+          phase={phase}
+          ign={claimed}
+          showJoin={phase === "join" || phase === "collect"}
+          canSpend={desk.deliveredCoins > 0}
+        />
       </Panel>
 
       <div className="grid gap-4 lg:grid-cols-2">

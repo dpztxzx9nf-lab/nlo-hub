@@ -248,6 +248,27 @@ test("season prizes are $50 player, $20 builder, 25k clan", () => {
   assert.doesNotMatch(src, /Finish first and take \$20/);
 });
 
+test("empty intel stays off the public nav", () => {
+  const src = readFileSync(new URL("../src/lib/nlo/content.ts", import.meta.url), "utf8");
+  const more = src.slice(src.indexOf("export const MORE_NAV"), src.indexOf("export const PRIZE_CHOICES"));
+  assert.match(more, /\/bounties/);
+  assert.doesNotMatch(more, /\/intel/);
+});
+
+test("share card names Season One prizes", () => {
+  const src = readFileSync(new URL("../src/routes/__root.tsx", import.meta.url), "utf8");
+  assert.match(src, /join tonight/);
+  assert.match(src, /\$50/);
+  assert.doesNotMatch(src, /open SMP with consequences/);
+});
+
+test("done coin flow points at spending on a bounty", () => {
+  const src = readFileSync(new URL("../src/components/coin-flow.tsx", import.meta.url), "utf8");
+  assert.match(src, /canSpend/);
+  assert.match(src, /Post a bounty/);
+  assert.match(src, /to="\/bounties"/);
+});
+
 test("player coin flow highlights the current step", () => {
   assert.equal(coinFlowPhase({ signedIn: false, claimedIgn: null }), "buy");
   assert.equal(coinFlowPhase({ signedIn: true, claimedIgn: null, pendingCount: 1, seenNames: false }), "join");

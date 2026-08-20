@@ -16,13 +16,13 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "NLO — Netherite Legends Odyssey. Java 26.2 / Bedrock SMP. Build, trade, raid, and hunt bounties on one shared world.",
+          "Join nlo.gg tonight. Java 26.2 / Bedrock SMP. Season One: top player $50, top builder $20, top clan 25,000 coins each.",
       },
       { name: "apple-mobile-web-app-title", content: APP_NAME },
       { name: "theme-color", content: "#0e1610" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
-      { property: "og:title", content: "NLO — open SMP with consequences" },
+      { property: "og:title", content: "NLO — join tonight. Season One $50 / $20 / 25k coins" },
       ...(ogImage
         ? [
             { property: "og:image", content: ogImage },

@@ -25,7 +25,6 @@ export const MORE_NAV = [
   { to: "/world", label: "World" },
   { to: "/bounties", label: "Bounties" },
   { to: "/boards", label: "Boards" },
-  { to: "/intel", label: "Intel" },
 ] as const;
 
 /** How $50 / $20 season prizes can land. Same menu for top player and top builder. */
