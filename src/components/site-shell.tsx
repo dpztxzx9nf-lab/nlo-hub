@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { UserButton } from "@/lib/auth/gates";
 import { NAV, MORE_NAV, SERVER } from "@/lib/nlo/content";
+import { LEGAL_NAV } from "@/lib/nlo/legal";
 import type { LiveStatus } from "@/lib/nlo/server";
 import { cn } from "@/lib/utils";
 
@@ -182,6 +183,11 @@ function Footer() {
           <Link to="/rules" className="hover:text-foreground">
             Rules
           </Link>
+          {LEGAL_NAV.map((item) => (
+            <a key={item.to} href={item.to} className="hover:text-foreground">
+              {item.label}
+            </a>
+          ))}
           <a href={SERVER.discord} className="hover:text-foreground" target="_blank" rel="noreferrer">
             Discord
           </a>
